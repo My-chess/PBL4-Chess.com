@@ -128,7 +128,11 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     
     function connectWebSocket() {
-        const wsUrl = `ws://${window.location.host}${contextPath}/game/${gameId}`;
+		const isSecure = window.location.protocol === 'https://';
+        const protocol = isSecure ? 'wss://' : 'ws://';
+        const wsUrl = `${protocol}${window.location.host}/game/${gameId}`;
+        console.log(`Attempting to connect to WebSocket at: ${wsUrl}`);
+
         websocket = new WebSocket(wsUrl);
         websocket.onopen = () => console.log("✅ 3. WebSocket Connected.");
         websocket.onmessage = (event) => {
@@ -136,6 +140,10 @@ document.addEventListener('DOMContentLoaded', () => {
             if (data.type === 'MOVE_FAIL') {
                 statusMessageEl.textContent = data.message;
             }
+        };
+		websocket.onclose = (event) => {
+            console.warn("WebSocket Connection Closed.", event);
+            statusMessageEl.textContent = "Mất kết nối server.";
         };
         websocket.onerror = (err) => console.error("❌ WebSocket Error:", err);
     }
