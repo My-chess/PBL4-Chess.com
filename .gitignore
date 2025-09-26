@@ -1,0 +1,25 @@
+# Build artifacts
+target/
+build/
+
+# IDE files
+.idea/
+*.iml
+.classpath
+.project
+.settings/
+
+# Log files
+*.log
+
+# Local secret files
+.env
+
+# Old libraries folder
+lib_old/
+src/main/webapp/WEB-INF/lib_old/
+
+# Explicitly ignore the service account key file, just in case
+serviceAccountKey.json
+src/main/webapp/WEB-INF/serviceAccountKey.json
+"src/main/webapp/WEB-INF/serviceAccountKey.json" 
