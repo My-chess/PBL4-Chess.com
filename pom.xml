@@ -38,9 +38,16 @@
             <version>2.10.1</version>
         </dependency>
          <dependency>
+            <groupId>jakarta.servlet.jsp.jstl</groupId>
+            <artifactId>jakarta.servlet.jsp.jstl-api</artifactId>
+            <version>3.0.0</version>
+        </dependency>
+        
+        <!-- 2. JSTL Impl (Glassfish) - Chứa các lớp triển khai thực tế như ConditionalTagSupport -->
+        <dependency>
             <groupId>org.glassfish.web</groupId>
             <artifactId>jakarta.servlet.jsp.jstl</artifactId>
-            <version>3.0.1</version> <!-- Phiên bản JSTL 3.0 tương thích với Jakarta EE 10 -->
+            <version>3.0.1</version>
         </dependency>
     </dependencies>
 
