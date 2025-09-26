@@ -128,20 +128,21 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     
     function connectWebSocket() {
-		const isSecure = window.location.protocol === 'https://';
+		const isSecure = window.location.protocol === 'https:';
         const protocol = isSecure ? 'wss://' : 'ws://';
+        
+        // URL này sẽ tự động đúng cho cả localhost (ws) và Render (wss)
         const wsUrl = `${protocol}${window.location.host}/game/${gameId}`;
-        console.log(`Attempting to connect to WebSocket at: ${wsUrl}`);
 
+        console.log(`Attempting to connect to WebSocket at: ${wsUrl}`);
         websocket = new WebSocket(wsUrl);
-        websocket.onopen = () => console.log("✅ 3. WebSocket Connected.");
-        websocket.onmessage = (event) => {
-            const data = JSON.parse(event.data);
-            if (data.type === 'MOVE_FAIL') {
-                statusMessageEl.textContent = data.message;
-            }
+        
+        websocket.onopen = () => {
+            console.log("✅ WebSocket Connection Established!");
+            statusMessageEl.textContent = "Sẵn sàng chơi!";
         };
-		websocket.onclose = (event) => {
+        
+        websocket.onclose = (event) => {
             console.warn("WebSocket Connection Closed.", event);
             statusMessageEl.textContent = "Mất kết nối server.";
         };
