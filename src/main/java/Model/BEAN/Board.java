@@ -48,6 +48,7 @@ public class Board {
         grid[6][6] = new PawnBEAN(31, "Red", 6, 6);
         grid[6][8] = new PawnBEAN(32, "Red", 8, 6);
     }
+
     // check có ai tại chổ di chuyển tới k
     public PieceBEAN getPieceAt(int x, int y) {
         if (!isWithinBounds(x, y)) {
@@ -55,7 +56,8 @@ public class Board {
         }
         return grid[y][x];
     }
-// lấy mảng
+
+    // lấy mảng
     public PieceBEAN[][] getGrid() {
         return this.grid;
     }
@@ -71,7 +73,7 @@ public class Board {
             if (capturedPiece != null) {
                 capturedPiece.setAlive(false);
             }
-            
+
             pieceToMove.setPosition(endX, endY);
             grid[endY][endX] = pieceToMove;
             grid[startY][startX] = null;
@@ -113,6 +115,164 @@ public class Board {
             return false;
         }
 
+        // Thêm kiểm tra Tướng đối mặt sau khi di chuyển
+        if (pieceToMove instanceof KingBEAN) {
+            if (areKingsFacing(endX, endY, pieceToMove.getColor())) {
+                return false;
+            }
+        } else {
+            if (areKingsFacing()) {
+                // Trường hợp này xử lý khi một quân cờ khác di chuyển và để lộ 2 Tướng
+                // Tạo một bàn cờ tạm để kiểm tra
+                PieceBEAN temp = grid[endY][endX];
+                grid[endY][endX] = grid[startY][startX];
+                grid[startY][startX] = null;
+                boolean kingsWillFace = areKingsFacing();
+                // Hoàn tác di chuyển trên bàn cờ tạm
+                grid[startY][startX] = grid[endY][endX];
+                grid[endY][endX] = temp;
+                if (kingsWillFace)
+                    return false;
+            }
+        }
+
         return pieceToMove.isValidMove(endX, endY, this.grid);
+    }
+
+    public boolean isKingInCheck(String kingColor) {
+        int kingX = -1, kingY = -1;
+        // 1. Tìm vị trí của Tướng
+        for (int y = 0; y < 10; y++) {
+            for (int x = 0; x < 9; x++) {
+                PieceBEAN p = getPieceAt(x, y);
+                if (p instanceof KingBEAN && p.getColor().equals(kingColor)) {
+                    kingX = x;
+                    kingY = y;
+                    break;
+                }
+            }
+            if (kingX != -1)
+                break;
+        }
+
+        if (kingX == -1)
+            return false; // Không tìm thấy Tướng
+
+        // 2. Duyệt qua các quân cờ của đối phương và kiểm tra xem có thể ăn Tướng không
+        String opponentColor = kingColor.equals("Red") ? "Black" : "Red";
+        for (int y = 0; y < 10; y++) {
+            for (int x = 0; x < 9; x++) {
+                PieceBEAN p = getPieceAt(x, y);
+                if (p != null && p.getColor().equals(opponentColor)) {
+                    if (p.isValidMove(kingX, kingY, this.grid)) {
+                        return true; // Tướng đang bị chiếu
+                    }
+                }
+            }
+        }
+        return false; // Tướng an toàn
+    }
+
+    public boolean areKingsFacing() {
+        PieceBEAN redKing = null, blackKing = null;
+        // Tìm vị trí 2 Tướng
+        for (int y = 0; y < 10; y++) {
+            for (int x = 0; x < 9; x++) {
+                PieceBEAN p = getPieceAt(x, y);
+                if (p instanceof KingBEAN) {
+                    if (p.getColor().equals("Red"))
+                        redKing = p;
+                    else
+                        blackKing = p;
+                }
+            }
+        }
+
+        if (redKing == null || blackKing == null)
+            return false;
+
+        // Nếu 2 Tướng không cùng cột, không đối mặt
+        if (redKing.getX() != blackKing.getX())
+            return false;
+
+        // Kiểm tra các ô ở giữa 2 Tướng
+        for (int y = blackKing.getY() + 1; y < redKing.getY(); y++) {
+            if (getPieceAt(redKing.getX(), y) != null) {
+                return false; // Có quân cản ở giữa
+            }
+        }
+
+        return true; // Hai Tướng đang đối mặt
+    }
+
+    private boolean areKingsFacing(int newKingX, int newKingY, String movingKingColor) {
+        PieceBEAN otherKing = null;
+        String otherKingColor = movingKingColor.equals("Red") ? "Black" : "Red";
+        for (int y = 0; y < 10; y++) {
+            for (int x = 0; x < 9; x++) {
+                PieceBEAN p = getPieceAt(x, y);
+                if (p instanceof KingBEAN && p.getColor().equals(otherKingColor)) {
+                    otherKing = p;
+                    break;
+                }
+            }
+        }
+
+        if (otherKing == null || newKingX != otherKing.getX())
+            return false;
+
+        int startY = Math.min(newKingY, otherKing.getY());
+        int endY = Math.max(newKingY, otherKing.getY());
+
+        for (int y = startY + 1; y < endY; y++) {
+            if (getPieceAt(newKingX, y) != null)
+                return false;
+        }
+        return true;
+    }
+    public boolean isCheckmate(String color) {
+        // 1. Nếu Tướng không bị chiếu, không thể là chiếu bí.
+        if (!isKingInCheck(color)) {
+            return false;
+        }
+
+        // 2. Thử tất cả các nước đi có thể có của bên 'color'.
+        for (int startY = 0; startY < 10; startY++) {
+            for (int startX = 0; startX < 9; startX++) {
+                PieceBEAN piece = getPieceAt(startX, startY);
+                if (piece != null && piece.getColor().equals(color)) {
+                    // Thử di chuyển quân cờ này đến mọi ô trên bàn cờ.
+                    for (int endY = 0; endY < 10; endY++) {
+                        for (int endX = 0; endX < 9; endX++) {
+                            if (isMoveValid(startX, startY, endX, endY)) {
+                                // 3. Tạm thời thực hiện nước đi.
+                                PieceBEAN capturedPiece = getPieceAt(endX, endY);
+                                executeMove(startX, startY, endX, endY);
+
+                                // 4. Kiểm tra xem Tướng có còn bị chiếu không.
+                                boolean stillInCheck = isKingInCheck(color);
+
+                                // 5. Hoàn tác nước đi.
+                                undoMove(startX, startY, endX, endY, capturedPiece);
+
+                                // Nếu tìm thấy một nước đi hợp lệ để thoát chiếu, thì không phải chiếu bí.
+                                if (!stillInCheck) {
+                                    return false;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // Nếu đã thử hết các nước đi mà vẫn bị chiếu, đó là chiếu bí.
+        return true;
+    }
+    private void undoMove(int startX, int startY, int endX, int endY, PieceBEAN capturedPiece) {
+        PieceBEAN movedPiece = getPieceAt(endX, endY);
+        movedPiece.setPosition(startX, startY);
+        this.grid[startY][startX] = movedPiece;
+        this.grid[endY][endX] = capturedPiece; // Phục hồi quân cờ đã bị ăn (nếu có)
     }
 }
