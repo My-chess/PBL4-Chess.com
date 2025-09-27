@@ -120,4 +120,13 @@ public class FirebaseService {
         }
         return board;
     }
+    public static void endMatch(String matchId, String winnerId, String reason) 
+            throws ExecutionException, InterruptedException {
+        Map<String, Object> updates = new HashMap<>();
+        updates.put("status", "COMPLETED");
+        updates.put("winnerId", winnerId);
+        updates.put("winReason", reason); // "CHECKMATE" hoặc "TIMEOUT"
+        
+        db.collection("matches").document(matchId).update(updates).get();
+    }
 }

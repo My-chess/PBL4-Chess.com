@@ -114,7 +114,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (p1Time <= 0 && myColor === 'Red') {
                     clearInterval(timerInterval);
                     if (websocket && websocket.readyState === WebSocket.OPEN) {
-                        websocket.send(JSON.stringify({ action: 'timeout' }));
+                        websocket.send(JSON.stringify({ type: 'timeout' }));
                     }
                 }
             } else {
@@ -237,8 +237,16 @@ document.addEventListener('DOMContentLoaded', () => {
             const endY = clickedSquare.dataset.y;
 
             if (websocket && websocket.readyState === WebSocket.OPEN) {
-                const moveData = { "startX": parseFloat(startX), "startY": parseFloat(startY), "endX": parseFloat(endX), "endY": parseFloat(endY) };
-                websocket.send(JSON.stringify(moveData));
+				const message = {
+				    type: "move",
+				    data: { 
+				        "startX": parseFloat(startX), 
+				        "startY": parseFloat(startY), 
+				        "endX": parseFloat(endX), 
+				        "endY": parseFloat(endY) 
+				    }
+				};
+				websocket.send(JSON.stringify(message));
                 statusMessageEl.textContent = "Đã gửi nước đi...";
             } else {
                 statusMessageEl.textContent = "Mất kết nối server.";
