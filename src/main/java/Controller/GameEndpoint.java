@@ -84,68 +84,91 @@ public class GameEndpoint {
     /**
      * Xử lý tin nhắn di chuyển quân cờ.
      */
-    private void handleMoveMessage(Map<String, Object> messageData, Session session, String gameId) throws Exception {
-        // Lấy dữ liệu nước đi từ tin nhắn
-        Map<String, Double> movePayload = (Map<String, Double>) messageData.get("data");
-        int startX = movePayload.get("startX").intValue();
-        int startY = movePayload.get("startY").intValue();
-        int endX = movePayload.get("endX").intValue();
-        int endY = movePayload.get("endY").intValue();
-        System.out.println("Parsed move: from [" + startX + "," + startY + "] to [" + endX + "," + endY + "]");
+ // Dán đoạn mã này vào bên trong lớp `GameEndpoint.java` của bạn,
+ // thay thế cho hàm handleMoveMessage cũ.
 
-        // 1. Lấy trạng thái trận đấu hiện tại từ Firestore.
-        DocumentSnapshot matchState = FirebaseService.getMatch(gameId);
-        if (matchState == null || !"IN_PROGRESS".equals(matchState.getString("status"))) {
-            sendError(session, "Trận đấu không tồn tại hoặc đã kết thúc.");
-            return;
-        }
+ /**
+  * Xử lý tin nhắn yêu cầu di chuyển quân cờ từ client theo kiến trúc mới.
+  *
+  * @param messageData Dữ liệu tin nhắn đã được parse từ JSON.
+  * @param session     Session của client gửi yêu cầu, để có thể gửi lại thông báo lỗi.
+  * @param gameId      ID của ván cờ đang diễn ra.
+  * @throws Exception  Ném ra lỗi nếu có vấn đề trong quá trình xử lý.
+  */
+ private void handleMoveMessage(Map<String, Object> messageData, Session session, String gameId) throws Exception {
+     
+     // Bước 1: Trích xuất tọa độ nước đi từ dữ liệu tin nhắn.
+     // Dữ liệu được gửi từ client có dạng { type: "move", data: { startX: ..., startY: ... } }
+     @SuppressWarnings("unchecked") // Bỏ qua cảnh báo vì chúng ta biết chắc cấu trúc JSON từ client
+     Map<String, Double> movePayload = (Map<String, Double>) messageData.get("data");
+     int startX = movePayload.get("startX").intValue();
+     int startY = movePayload.get("startY").intValue();
+     int endX = movePayload.get("endX").intValue();
+     int endY = movePayload.get("endY").intValue();
 
-        // 2. TODO: Bổ sung logic kiểm tra xem có đúng lượt của người chơi này không
-        // (Phần này bạn có thể tự hoàn thiện bằng cách so sánh ID người chơi trong session và trong matchState)
+     System.out.println("Đang xử lý nước đi cho GameID " + gameId + ": từ [" + startX + "," + startY + "] đến [" + endX + "," + endY + "]");
 
-        // 3. Tái tạo lại bàn cờ từ lịch sử các nước đi.
-        System.out.println("Reconstructing board from moves...");
-        Board currentBoard = FirebaseService.reconstructBoardFromMoves(gameId);
-        
-        // 4. Sử dụng hàm isMoveValid đã được hoàn thiện để kiểm tra nước đi.
-        System.out.println("Validating move...");
-        if (currentBoard.isMoveValid(startX, startY, endX, endY)) {
-            System.out.println("Validation SUCCESS: Move is valid.");
-            
-            String currentTurnColor = matchState.getString("currentTurn");
-            MoveBEAN move = new MoveBEAN(
-                currentTurnColor,
-                startX, startY, endX, endY,
-                currentBoard.getPieceAt(startX, startY).getClass().getSimpleName(),
-                Timestamp.now()
-            );
-            
-            // 5. Lưu nước đi vào Firestore và chuyển lượt.
-            System.out.println("Saving move to Firestore...");
-            FirebaseService.saveMoveAndSwitchTurn(gameId, matchState, move);
-            System.out.println("Move saved successfully.");
-            
-            // Thông báo cho client là nước đi đã được chấp nhận.
-            session.getBasicRemote().sendText("{\"type\":\"MOVE_ACCEPTED\"}");
+     // Bước 2: Gọi hàm xử lý tập trung ở tầng Service (FirebaseService).
+     // Hàm này sẽ thực hiện toàn bộ logic nặng:
+     // - Lấy trạng thái bàn cờ hiện tại từ Firestore.
+     // - Tái tạo đối tượng Board.
+     // - Xác thực tính hợp lệ của nước đi bằng hàm board.isMoveValid().
+     // - Nếu hợp lệ, thực hiện nước đi, tạo trạng thái bàn cờ mới và cập nhật lại lên Firestore.
+     // - Hàm sẽ trả về `true` nếu toàn bộ quá trình thành công, và `false` nếu nước đi không hợp lệ.
+     boolean isMoveSuccessful = FirebaseService.processMoveAndUpdateBoard(gameId, startX, startY, endX, endY);
 
-            // 6. >>> LOGIC MỚI: KIỂM TRA CHIẾU BÍ SAU KHI ĐI <<<
-            System.out.println("Checking for checkmate...");
-            Board boardAfterMove = FirebaseService.reconstructBoardFromMoves(gameId); // Tải lại bàn cờ sau nước đi mới
-            String nextTurnColor = "Red".equals(currentTurnColor) ? "Black" : "Red";
-            
-            if (boardAfterMove.isCheckmate(nextTurnColor)) {
-                System.out.println("!!! CHECKMATE !!! " + currentTurnColor + " wins!");
-                // Lấy ID người chơi từ matchState
-                String winnerId = ((Map<String, String>)matchState.get(currentTurnColor.equals("Red") ? "player1" : "player2")).get("uid");
-                String loserId = ((Map<String, String>)matchState.get(nextTurnColor.equals("Red") ? "player1" : "player2")).get("uid");
-                endGame(gameId, winnerId, loserId, currentTurnColor, "CHECKMATE");
-            }
+     // Bước 3: Xử lý kết quả trả về từ Service.
+     if (isMoveSuccessful) {
+         
+         // --- Trường hợp nước đi hợp lệ và đã được cập nhật ---
+         System.out.println("Thành công: Nước đi hợp lệ, bàn cờ đã được cập nhật trên Firestore.");
+         
+         // Ghi chú quan trọng: Chúng ta không cần gửi lại trạng thái bàn cờ ở đây.
+         // Client (game.js) đang lắng nghe (onSnapshot) thay đổi trên document của trận đấu.
+         // Khi hàm `processMoveAndUpdateBoard` cập nhật Firestore, client sẽ tự động nhận được `boardState` mới và vẽ lại giao diện.
+         // Đây chính là sức mạnh của kiến trúc này.
+         
+         // Bước 3.1: >>> KIỂM TRA CHIẾU BÍ SAU KHI ĐI THÀNH CÔNG <<<
+         // Sau khi nước đi đã được xác nhận và lưu lại, chúng ta cần kiểm tra xem đối thủ có bị chiếu bí không.
+         
+         // Tải lại trạng thái trận đấu ngay sau khi đã cập nhật để có dữ liệu mới nhất.
+         DocumentSnapshot matchStateAfterMove = FirebaseService.getMatch(gameId);
+         if (matchStateAfterMove == null) return; // Trận đấu không còn tồn tại, thoát.
 
-        } else {
-            System.out.println("Validation FAILED: Move is NOT valid according to game rules.");
-            sendError(session, "Nước đi không hợp lệ!");
-        }
-    }
+         // Xác định người thắng (người vừa đi) và người thua (người có lượt tiếp theo, vì lượt đã được đổi)
+         String winnerColor = "Red".equals(matchStateAfterMove.getString("currentTurn")) ? "Black" : "Red";
+         String loserColor = matchStateAfterMove.getString("currentTurn");
+
+         // Tái tạo bàn cờ từ trạng thái mới nhất để kiểm tra chiếu bí.
+         @SuppressWarnings("unchecked")
+         Map<String, String> boardStateMap = (Map<String, String>) matchStateAfterMove.get("boardState");
+         Board boardAfterMove = new Board(boardStateMap);
+
+         if (boardAfterMove.isCheckmate(loserColor)) {
+             System.out.println("!!! CHIẾU BÍ !!! Người chơi phe " + winnerColor + " đã thắng!");
+             
+             // Lấy ID của người thắng và người thua từ document trận đấu
+             @SuppressWarnings("unchecked")
+             String winnerId = ((Map<String, String>)matchStateAfterMove.get(winnerColor.equals("Red") ? "player1" : "player2")).get("uid");
+             @SuppressWarnings("unchecked")
+             String loserId = ((Map<String, String>)matchStateAfterMove.get(loserColor.equals("Red") ? "player1" : "player2")).get("uid");
+             
+             // Gọi hàm kết thúc game (cập nhật DB, ELO, và thông báo cho client)
+             endGame(gameId, winnerId, loserId, winnerColor, "CHECKMATE");
+         }
+         
+     } else {
+         
+         // --- Trường hợp nước đi không hợp lệ ---
+         System.out.println("Thất bại: Nước đi không hợp lệ. Gửi thông báo lỗi về cho client.");
+
+         // Gửi một tin nhắn lỗi cụ thể về cho client đã gửi nước đi.
+         // Client (game.js) đã được lập trình để nhận tin nhắn `ERROR` và hiển thị thông báo cho người dùng.
+         // Vì nước đi bị từ chối, trạng thái bàn cờ trên Firestore không hề thay đổi,
+         // do đó bàn cờ của người chơi kia cũng không bị ảnh hưởng. Mọi thứ vẫn đồng bộ.
+         sendError(session, "Nước đi không hợp lệ!");
+     }
+ }
     
     /**
      * >>> HÀM MỚI: Xử lý tin nhắn khi một người chơi hết giờ <<<

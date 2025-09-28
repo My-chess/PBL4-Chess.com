@@ -1,5 +1,7 @@
  package Model.BEAN; // Giữ nguyên package của bạn
 
+import java.util.Map;
+
 import Model.BEAN.PieceBEAN; // Đảm bảo bạn đã import các lớp quân cờ
 
 /**
@@ -19,6 +21,32 @@ public class Board {
     public Board() {
         this.grid = new PieceBEAN[10][9];
         setupInitialPieces();
+    }
+    
+    public Board(Map<String, String> boardState) {
+        this.grid = new PieceBEAN[10][9];
+        if (boardState == null) return;
+
+        for (Map.Entry<String, String> entry : boardState.entrySet()) {
+            String[] pos = entry.getKey().split(",");
+            int y = Integer.parseInt(pos[0]);
+            int x = Integer.parseInt(pos[1]);
+
+            String[] pieceInfo = entry.getValue().split("_");
+            String pieceType = pieceInfo[0];
+            String color = pieceInfo[1];
+
+            // Dựa vào thông tin để tạo đối tượng quân cờ tương ứng
+            switch (pieceType) {
+                case "RookBEAN": grid[y][x] = new RookBEAN(0, color, x, y); break;
+                case "KnightBEAN": grid[y][x] = new KnightBEAN(0, color, x, y); break;
+                case "BishopBEAN": grid[y][x] = new BishopBEAN(0, color, x, y); break;
+                case "AdvisorBEAN": grid[y][x] = new AdvisorBEAN(0, color, x, y); break;
+                case "KingBEAN": grid[y][x] = new KingBEAN(0, color, x, y); break;
+                case "CannonBEAN": grid[y][x] = new CannonBEAN(0, color, x, y); break;
+                case "PawnBEAN": grid[y][x] = new PawnBEAN(0, color, x, y); break;
+            }
+        }
     }
 
     /**

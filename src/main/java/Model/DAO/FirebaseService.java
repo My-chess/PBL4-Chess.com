@@ -2,6 +2,8 @@ package Model.DAO;
 
 import Model.BEAN.Board;
 import Model.BEAN.MoveBEAN;
+import Model.BEAN.PieceBEAN;
+
 import com.google.api.core.ApiFuture;
 import com.google.cloud.Timestamp;
 import com.google.cloud.firestore.*;
@@ -23,26 +25,82 @@ public class FirebaseService {
     public static String createNewMatch(String player1Id, String player1DisplayName)
             throws ExecutionException, InterruptedException {
         DocumentReference docRef = db.collection("matches").document();
-        DocumentSnapshot userDoc = db.collection("users").document(player1Id).get().get();
-        long player1Elo = userDoc.exists() ? userDoc.getLong("elo") : 1000;
+        
+        // Tạo bàn cờ ban đầu và chuyển nó thành Map
+        Board initialBoard = new Board();
+        Map<String, String> initialBoardState = boardToMap(initialBoard);
 
-        Map<String, Object> player1 = new HashMap<>();
-        player1.put("uid", player1Id);
-        player1.put("displayName", player1DisplayName);
-        player1.put("elo", player1Elo);
+        // ... (code lấy elo người chơi giữ nguyên) ...
 
         Map<String, Object> match = new HashMap<>();
-        match.put("player1", player1);
-        match.put("player2", null);
+        // ... (các trường thông tin player, status, v.v. giữ nguyên) ...
         match.put("status", "WAITING");
-        match.put("startTime", com.google.cloud.Timestamp.now());
-        match.put("lastMoveTimestamp", com.google.cloud.Timestamp.now());
         match.put("currentTurn", "Red");
-        match.put("player1TimeLeftMs", INITIAL_TIME_MS);
-        match.put("player2TimeLeftMs", INITIAL_TIME_MS);
+        // >>> THÊM MỚI: Lưu trạng thái bàn cờ vào document <<<
+        match.put("boardState", initialBoardState); 
 
         docRef.set(match).get();
         return docRef.getId();
+    }
+    
+    private static Map<String, String> boardToMap(Board board) {
+        Map<String, String> boardState = new HashMap<>();
+        for (int y = 0; y < 10; y++) {
+            for (int x = 0; x < 9; x++) {
+                PieceBEAN piece = board.getPieceAt(x, y);
+                if (piece != null) {
+                    String key = y + "," + x;
+                    String value = piece.getClass().getSimpleName() + "_" + piece.getColor();
+                    boardState.put(key, value);
+                }
+            }
+        }
+        return boardState;
+    }
+    public static boolean processMoveAndUpdateBoard(String matchId, int startX, int startY, int endX, int endY) throws Exception {
+        DocumentSnapshot matchState = getMatch(matchId);
+        if (matchState == null) return false;
+
+        // 1. Lấy trạng thái bàn cờ hiện tại từ Firestore
+        Map<String, String> currentBoardStateMap = (Map<String, String>) matchState.get("boardState");
+        
+        // 2. Tái tạo đối tượng Board từ trạng thái đó
+        Board currentBoard = new Board(currentBoardStateMap);
+        
+        // 3. Kiểm tra nước đi có hợp lệ không
+        if (!currentBoard.isMoveValid(startX, startY, endX, endY)) {
+            System.out.println("SERVER VALIDATION FAILED: Move is invalid.");
+            return false; // Trả về false nếu không hợp lệ
+        }
+        
+        // 4. Nếu hợp lệ, thực hiện nước đi trên đối tượng Board
+        PieceBEAN pieceMoved = currentBoard.getPieceAt(startX, startY);
+        currentBoard.executeMove(startX, startY, endX, endY);
+        
+        // 5. Chuyển đổi bàn cờ sau khi đi thành Map để lưu lại
+        Map<String, String> newBoardStateMap = boardToMap(currentBoard);
+        
+        // 6. Chuẩn bị dữ liệu để cập nhật và lưu nước đi vào "moves" subcollection
+        WriteBatch batch = db.batch();
+        DocumentReference matchRef = db.collection("matches").document(matchId);
+        
+        // Cập nhật các thông tin của trận đấu
+        String lastTurn = matchState.getString("currentTurn");
+        Map<String, Object> matchUpdates = new HashMap<>();
+        matchUpdates.put("boardState", newBoardStateMap); // <-- Cập nhật trạng thái bàn cờ mới
+        matchUpdates.put("currentTurn", "Red".equals(lastTurn) ? "Black" : "Red");
+        matchUpdates.put("lastMoveTimestamp", Timestamp.now());
+        // ... (code cập nhật thời gian còn lại giữ nguyên) ...
+        batch.update(matchRef, matchUpdates);
+        
+        // Lưu nước đi này vào subcollection để làm lịch sử
+        MoveBEAN move = new MoveBEAN(lastTurn, startX, startY, endX, endY, pieceMoved.getClass().getSimpleName(), Timestamp.now());
+        DocumentReference moveRef = matchRef.collection("moves").document();
+        batch.set(moveRef, move);
+
+        // 7. Thực thi batch write
+        batch.commit().get();
+        return true;
     }
 
     /**
