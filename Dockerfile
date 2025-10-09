@@ -1,6 +1,6 @@
 # ----- GIAI ĐOẠN 1: BUILD ỨNG DỤNG BẰNG MAVEN -----
 # Sử dụng một image có sẵn Maven và Java 17 để biên dịch và đóng gói
-FROM maven:3.8-openjdk-17 AS build
+FROM maven:3.8-openjdk-11 AS build
 
 # Đặt thư mục làm việc bên trong container là /app
 WORKDIR /app
@@ -19,7 +19,7 @@ RUN mvn clean package -DskipTests
 
 # ----- GIAI ĐOẠN 2: CHẠY ỨNG DỤNG TRÊN TOMCAT -----
 # Sử dụng một image Tomcat 10.1 chính thức, nhẹ và đã được tối ưu
-FROM tomcat:10.1-jdk17-temurin
+FROM tomcat:10.1-jdk11-temurin
 
 # Xóa các ứng dụng web mặc định của Tomcat để giữ image gọn nhẹ
 RUN rm -rf /usr/local/tomcat/webapps/*
