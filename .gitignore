@@ -23,3 +23,6 @@ src/main/webapp/WEB-INF/lib_old/
 serviceAccountKey.json
 src/main/webapp/WEB-INF/serviceAccountKey.json
 "src/main/webapp/WEB-INF/serviceAccountKey.json" 
+
+srs/main/java/Controller/FirebaseConfig.java
+"srs/main/java/Controller/FirebaseConfig.java"
