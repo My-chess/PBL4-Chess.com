@@ -29,7 +29,7 @@ public class FirebaseConfig implements ServletContextListener {
         
         try {
             // Chỉ khởi tạo nếu chưa có ứng dụng Firebase nào chạy
-            if (FirebaseApp.getApps().isEmpty()) {
+            if (FirebaseApp.getApps().isEmpty()) { 
                 
                 // 1. Đọc nội dung key từ biến môi trường của hệ thống (Render sẽ cung cấp biến này)
                 // System.getenv() là cách chuẩn của Java để đọc environment variables.
