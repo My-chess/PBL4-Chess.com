@@ -33,12 +33,14 @@ document.addEventListener('DOMContentLoaded', () => {
     const turnColorEl = document.getElementById('turn-color');
     const statusMessageEl = document.getElementById('status-message');
     const moveListEl = document.getElementById('move-list'); // Giữ lại nếu bạn muốn hiển thị lịch sử nước đi
+	const gameOverModal = document.getElementById('gameOverModal');
+	   const gameOverMessageEl = document.getElementById('gameOverMessage');
 
     // Biến toàn cục để quản lý trạng thái của client
     let selectedSquare = null;      // Ô cờ đang được người dùng chọn
     let websocket = null;           // Đối tượng WebSocket
     let myColor = null;             // Màu quân của người chơi hiện tại ('Red' hoặc 'Black')
-    let isSpectator = true;         // Mặc định là khán giả cho đến khi xác định được vai trò
+    let isSpectator = false;         // Mặc định là khán giả cho đến khi xác định được vai trò
     let currentTurnFromServer = null; // Lưu lại lượt đi hiện tại từ server
     let timerInterval = null;       // Biến để quản lý bộ đếm thời gian
 
@@ -207,10 +209,25 @@ document.addEventListener('DOMContentLoaded', () => {
             } else if (data.type === 'GAME_OVER') {
                 // Xử lý khi nhận được thông báo kết thúc game
                 clearInterval(timerInterval);
-                const winnerText = data.winnerColor === 'Red' ? "Đỏ" : "Đen";
-                const reasonText = data.reason === 'CHECKMATE' ? 'chiếu bí' : 'hết giờ';
-                statusMessageEl.textContent = `TRÒ CHƠI KẾT THÚC! Phe ${winnerText} thắng do ${reasonText}.`;
-                // Có thể hiển thị một popup thông báo chiến thắng/thua cuộc ở đây
+				const winnerText = data.winnerColor === 'Red' ? "Phe Đỏ" : "Phe Đen";
+				                let reasonText = '';
+				                if (data.reason === 'CHECKMATE') {
+				                    reasonText = 'do chiếu bí';
+				                } else if (data.reason === 'TIMEOUT') {
+				                    reasonText = 'do đối thủ hết giờ';
+				                } else if (data.reason === 'RESIGN') {
+				                    reasonText = 'do đối thủ đầu hàng';
+				                }
+
+				                // 3. Tạo thông báo kết quả đầy đủ
+				                const finalMessage = `${winnerText} đã giành chiến thắng ${reasonText}!`;
+				                
+				                // 4. Cập nhật nội dung và hiển thị modal
+				                gameOverMessageEl.textContent = finalMessage;
+				                gameOverModal.style.display = 'flex'; // << Kích hoạt modal
+				                
+				                // Cập nhật cả thanh trạng thái chính
+				                statusMessageEl.textContent = "Ván cờ đã kết thúc.";
             }
         };
     }

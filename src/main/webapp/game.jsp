@@ -53,6 +53,13 @@
                 </ul>
             </div>
         </div>
+        <div id="gameOverModal" class="modal-overlay">
+        <div class="modal-content">
+            <h2>Kết quả ván cờ</h2>
+            <p id="gameOverMessage"></p>
+            <a href="${pageContext.request.contextPath}/index.jsp" class="modal-button">Về trang chủ</a>
+        </div>
+    </div>
     </div>
     
     <script>

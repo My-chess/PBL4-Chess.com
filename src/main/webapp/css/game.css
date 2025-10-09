@@ -142,3 +142,71 @@ body {
     border-bottom: 1px solid #3e3e3e;
 }
 #move-list li:nth-child(odd) { background-color: rgba(0, 0, 0, 0.1); }
+
+/* Lớp nền mờ, bao phủ toàn màn hình */
+.modal-overlay {
+    position: fixed; /* Giữ cố định trên màn hình */
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.7); /* Màu đen mờ */
+    
+    /* Dùng flexbox để căn giữa nội dung */
+    display: none; /* << Mặc định sẽ bị ẩn đi */
+    justify-content: center;
+    align-items: center;
+    
+    z-index: 1000; /* Luôn nằm trên cùng */
+}
+
+/* Hộp thoại thông báo */
+.modal-content {
+    background-color: #3a3a3c; /* Màu nền tối */
+    color: #f0f0f0; /* Chữ màu sáng */
+    padding: 20px 40px;
+    border-radius: 8px;
+    text-align: center;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.5);
+    animation: fadeIn 0.3s ease-in-out;
+}
+
+.modal-content h2 {
+    margin-top: 0;
+    color: #ffffff;
+    border-bottom: 1px solid #555;
+    padding-bottom: 10px;
+}
+
+.modal-content p {
+    font-size: 1.2em;
+    margin: 20px 0;
+}
+
+/* Nút nhấn trong modal */
+.modal-button {
+    display: inline-block;
+    padding: 10px 25px;
+    background-color: #4CAF50; /* Màu xanh lá */
+    color: white;
+    text-decoration: none;
+    border-radius: 5px;
+    font-weight: bold;
+    transition: background-color 0.2s;
+}
+
+.modal-button:hover {
+    background-color: #45a049;
+}
+
+/* Hiệu ứng xuất hiện */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: scale(0.9);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}

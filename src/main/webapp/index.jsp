@@ -12,7 +12,7 @@
     <link rel="stylesheet" href="${pageContext.request.contextPath}/css/style.css">
 </head>
 <body>
-    <jsp:include page="/WEB-INF/views/common/header.jsp" />
+    <jsp:include page="WEB-INF/views/common/header.jsp" />
 
     <div class="container lobby-container">
         <div class="lobby-panel create-game">
