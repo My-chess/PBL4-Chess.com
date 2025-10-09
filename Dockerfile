@@ -1,30 +1,38 @@
-# Bắt đầu với một image Tomcat 10.1 và Java 17
-FROM tomcat:10.1-jdk17-temurin
+# ----- GIAI ĐOẠN 1: BUILD ỨNG DỤNG BẰNG MAVEN -----
+# Sử dụng một image có sẵn Maven và Java 11 để biên dịch và đóng gói
+FROM maven:3.8-openjdk-11 AS build
 
-# Chỉ định thư mục làm việc bên trong container
-WORKDIR /usr/local/tomcat
+# Đặt thư mục làm việc bên trong container là /app
+WORKDIR /app
 
-# Xóa các ứng dụng web mặc định của Tomcat để dọn dẹp
-RUN rm -rf webapps/*
-
-# Sao chép file pom.xml để tải các thư viện cần thiết
+# Sao chép file pom.xml vào trước.
 COPY pom.xml .
-# Chạy Maven để tải các dependencies (tận dụng Docker cache)
+
+# === BƯỚC SỬA LỖI: TẢI DEPENDENCIES NGAY SAU KHI COPY POM.XML ===
+# Chạy lệnh Maven để tải tất cả dependencies về.
+# Docker sẽ cache bước này, nó chỉ chạy lại khi file pom.xml thay đổi.
 RUN mvn dependency:go-offline
 
-# Sao chép toàn bộ mã nguồn của dự án vào container
+# Sao chép toàn bộ mã nguồn của bạn vào
 COPY src ./src
 
-# Chạy Maven để build dự án thành file .war bên trong container
-# Lệnh này sẽ tạo ra file /usr/local/tomcat/target/PBL4-Chess.war
-RUN mvn package
+# Chạy lệnh Maven để build toàn bộ dự án.
+# Lần này Maven sẽ dùng các dependencies đã được tải về từ bước trước.
+RUN mvn clean package -DskipTests
 
-# Sao chép file .war đã build vào thư mục webapps và đổi tên thành ROOT.war
-# để ứng dụng chạy ở thư mục gốc (ví dụ: yoursite.com/)
-RUN cp target/PBL4-Chess.war webapps/ROOT.war
 
-# Cổng mặc định của Tomcat
+# ----- GIAI ĐOẠN 2: CHẠY ỨNG DỤNG TRÊN TOMCAT -----
+# Sử dụng một image Tomcat 10.1 chính thức, nhẹ và đã được tối ưu
+FROM tomcat:10.1-jdk11-temurin
+
+# Xóa các ứng dụng web mặc định của Tomcat để giữ image gọn nhẹ
+RUN rm -rf /usr/local/tomcat/webapps/*
+
+# Sao chép file ROOT.war đã được build ở Giai đoạn 1 vào thư mục webapps của Tomcat
+COPY --from=build /app/target/ROOT.war /usr/local/tomcat/webapps/ROOT.war
+
+# Mở cổng 8080 để Render có thể kết nối vào
 EXPOSE 8080
 
-# Lệnh để khởi động Tomcat khi container chạy
+# Lệnh để khởi động Tomcat khi container chạy.
 CMD ["catalina.sh", "run"]
