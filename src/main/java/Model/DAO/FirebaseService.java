@@ -9,6 +9,7 @@ import com.google.cloud.Timestamp;
 import com.google.cloud.firestore.*;
 import com.google.firebase.cloud.FirestoreClient;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -99,6 +100,22 @@ public class FirebaseService {
             return false; // Trả về false nếu không hợp lệ
         }
         
+     // 1. Lấy thông tin về lượt đi vừa kết thúc
+        String lastTurnColor = matchState.getString("currentTurn");
+        Timestamp lastMoveTimestamp = matchState.getTimestamp("lastMoveTimestamp");
+
+        // 2. Tính thời gian đã trôi qua cho lượt đi này (tính bằng mili giây)
+        long timeElapsedMs = com.google.cloud.Timestamp.now().toDate().getTime() - lastMoveTimestamp.toDate().getTime();
+
+        // 3. Xác định trường thời gian của người chơi vừa đi
+        String timeLeftField = "Red".equals(lastTurnColor) ? "player1TimeLeftMs" : "player2TimeLeftMs";
+
+        // 4. Lấy thời gian còn lại cũ và tính thời gian còn lại mới
+        long oldTimeLeftMs = matchState.getLong(timeLeftField);
+        long newTimeLeftMs = oldTimeLeftMs - timeElapsedMs;
+        // Đảm bảo thời gian không bao giờ âm
+        newTimeLeftMs = Math.max(0, newTimeLeftMs);
+        
         // 4. Nếu hợp lệ, lấy thông tin quân cờ đã di chuyển
         PieceBEAN pieceMoved = currentBoard.getPieceAt(startX, startY);
         String currentTurnColor = matchState.getString("currentTurn");
@@ -118,6 +135,8 @@ public class FirebaseService {
         matchUpdates.put("boardState", newBoardStateMap); // <-- Cập nhật trạng thái bàn cờ mới
         matchUpdates.put("currentTurn", "Red".equals(currentTurnColor) ? "Black" : "Red");
         matchUpdates.put("lastMoveTimestamp", Timestamp.now());
+        
+        matchUpdates.put(timeLeftField, newTimeLeftMs);
         // ... (code cập nhật thời gian còn lại có thể thêm vào đây nếu cần) ...
         batch.update(matchRef, matchUpdates);
         
@@ -221,5 +240,23 @@ public class FirebaseService {
         updates.put("winReason", reason); // "CHECKMATE" hoặc "TIMEOUT"
         
         db.collection("matches").document(matchId).update(updates).get();
+    }
+    public static List<Map<String, Object>> getWaitingMatches() throws ExecutionException, InterruptedException {
+        List<Map<String, Object>> waitingMatches = new ArrayList<>();
+        
+        // Tạo truy vấn đến collection 'matches' với điều kiện status == "WAITING"
+        ApiFuture<QuerySnapshot> future = db.collection("matches").whereEqualTo("status", "WAITING").get();
+        List<QueryDocumentSnapshot> documents = future.get().getDocuments();
+
+        // Lặp qua từng document kết quả
+        for (QueryDocumentSnapshot document : documents) {
+            Map<String, Object> matchData = document.getData();
+            // QUAN TRỌNG: Thêm ID của document (chính là gameId) vào trong Map
+            // để frontend có thể sử dụng nó cho nút "Join".
+            matchData.put("matchId", document.getId());
+            waitingMatches.add(matchData);
+        }
+        
+        return waitingMatches;
     }
 }

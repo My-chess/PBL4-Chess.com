@@ -19,6 +19,7 @@
             <h2>Bắt đầu ván cờ mới</h2>
             <p>Tạo một phòng chơi và mời bạn bè cùng tham gia!</p>
             <a href="${pageContext.request.contextPath}/startGame" class="btn">Tạo Ván Mới</a>
+            <a href="${pageContext.request.contextPath}/lobby" class="btn btn-secondary">Tìm phòng</a>
         </div>
 
         <div class="lobby-panel join-game">
