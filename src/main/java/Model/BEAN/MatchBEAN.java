@@ -13,6 +13,9 @@ public class MatchBEAN {
     private Timestamp lastMoveTimestamp;
     private long player1TimeLeftMs; // Thời gian còn lại tính bằng mili giây
     private long player2TimeLeftMs;
+    private String winnerId;
+    private String winReason;
+    private java.util.List<String> participantIds;
 
     /**
      * Hàm dựng mặc định.
@@ -93,4 +96,10 @@ public class MatchBEAN {
     public void setPlayer2TimeLeftMs(long player2TimeLeftMs) {
         this.player2TimeLeftMs = player2TimeLeftMs;
     }
+    public String getWinnerId() { return winnerId; }
+    public void setWinnerId(String winnerId) { this.winnerId = winnerId; }
+    public String getWinReason() { return winReason; }
+    public void setWinReason(String winReason) { this.winReason = winReason; }
+    public java.util.List<String> getParticipantIds() { return participantIds; }
+    public void setParticipantIds(java.util.List<String> participantIds) { this.participantIds = participantIds; }
 }

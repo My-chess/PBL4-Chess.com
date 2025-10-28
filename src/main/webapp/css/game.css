@@ -1,212 +1,568 @@
+/* ==========================================================================
+   GAME.CSS - PHIÊN BẢN NÂNG CẤP VÀ ĐỒNG BỘ
+   ========================================================================== */
+
+/* --- Import Font --- */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=ZCOOL+QingKe+HuangYou&display=swap');
+
 :root {
-    --square-size: 60px;
-    --piece-size: 54px;
-    --line-color: #6a4a3a;
-    --board-bg: #f3d19c;
-    --border-wood: #8B4513;
-    --selected-glow: #00ff00;
-    --timer-active-bg: #4CAF50;
+    /* ===== THAY ĐỔI: Đồng bộ toàn bộ màu sắc và biến với style.css ===== */
+    /* Palette màu sắc tươi sáng và hiện đại */
+    --primary-blue: #4A90E2;
+    --secondary-green: #7ED321;
+    --accent-orange: #F5A623;
+    --accent-red: #E74C3C;
+    --bg-light: #f4f7f6;
+    --bg-card: #FFFFFF;
+    --text-dark: #2C3E50;
+    --text-light: #6C757D;
+    --border-light: #E9ECEF;
+    --shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+    --shadow-hover: 0 8px 25px rgba(74, 144, 226, 0.15);
+    --border-radius: 12px;
+    --font-family: 'Inter', sans-serif;
+    --font-family-piece: 'ZCOOL QingKe HuangYou', sans-serif;
+
+    /* Kích thước bàn cờ */
+    --square-size: 65px;
+    --piece-size-ratio: 0.9;
+    
+    /* Màu bàn cờ (giống hình ảnh) */
+    --line-color: #a0522d;
+    --board-bg: #f5e5c3;
+    --board-wood: #8B4513;
+    --line-width: 2px;
+    
+    --marker-size: 10px; /* Độ dài của vạch dấu */
+    --marker-offset: 5px;  /* Khoảng cách từ giao điểm */
+    --marker-line-width: var(--line-width); /* Độ dày của vạch dấu */
 }
 
+/* --- Cấu trúc Layout Chung --- */
 body {
-    background-color: #1a1a1a;
-    color: #e0e0e0;
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: var(--bg-light);
+    color: var(--text-dark);
+    font-family: var(--font-family);
     display: flex;
     justify-content: center;
     align-items: center;
     min-height: 100vh;
     padding: 20px;
     box-sizing: border-box;
+    margin: 0;
 }
 
 .game-container {
     display: grid;
-    grid-template-columns: 1fr 300px;
-    grid-template-rows: auto 1fr;
-    gap: 25px;
+    grid-template-columns: 1fr 350px;
+    gap: 30px;
     width: 100%;
-    max-width: 1200px;
+    max-width: 1400px;
 }
 
 .main-content {
-    grid-column: 1 / 2;
-    grid-row: 1 / 3;
     display: flex;
     flex-direction: column;
-    justify-content: space-between;
+    justify-content: center;
+    gap: 20px;
 }
 
-.sidebar {
-    grid-column: 2 / 3;
-    grid-row: 1 / 3;
-    background-color: #2c2c2c;
-    padding: 20px;
-    border-radius: 8px;
-    display: flex;
-    flex-direction: column;
-    border: 1px solid #3e3e3e;
+/* --- Bảng Thông tin & Sidebar (Đồng bộ với style.css) --- */
+.sidebar, .player-info-panel {
+    background: var(--bg-card);
+    padding: 25px;
+    border-radius: var(--border-radius);
+    border: 1px solid var(--border-light);
+    box-shadow: var(--shadow);
+    position: relative;
+    overflow: hidden;
 }
+
+.sidebar::before, .player-info-panel::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 4px;
+}
+.sidebar::before { background: linear-gradient(135deg, var(--primary-blue) 0%, var(--secondary-green) 100%); }
+/*.player-info-panel::before { background: linear-gradient(135deg, var(--accent-orange) 0%, #E09612 100%); } */
 
 .player-info-panel {
-    background-color: #2c2c2c;
-    padding: 15px 20px;
-    border-radius: 8px;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    border: 1px solid #3e3e3e;
+    gap: 15px;
+    background: var(--bg-card);
+    padding: 25px;
+    border-radius: var(--border-radius);
+    border: 1px solid var(--border-light);
+    box-shadow: var(--shadow);
+    position: relative;
+    overflow: hidden;
 }
-.player-details { display: flex; flex-direction: column; }
-.player-name { font-size: 20px; font-weight: 500; color: white; }
-.player-elo { font-size: 14px; color: #a0a0a0; }
+.player-details {
+    /* Cho phép phần tên co giãn để lấp đầy không gian */
+    flex-grow: 1; 
+    /* Căn giữa tên/elo */
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.player-name { font-size: 20px; font-weight: 600; }
+.player-elo { font-size: 14px; color: var(--text-light); }
+
 .timer {
-    font-size: 28px;
+    font-size: 32px;
     font-weight: 700;
-    background-color: #3e3e3e;
-    padding: 8px 16px;
-    border-radius: 6px;
-    min-width: 100px;
+    background: #f8f9fa;
+    padding: 12px 20px;
+    border-radius: 10px;
+    min-width: 120px;
     text-align: center;
-    transition: background-color 0.3s ease, color 0.3s ease;
+    color: var(--text-dark);
+    border: 1px solid var(--border-light);
+    transition: all 0.3s ease;
+    flex-shrink: 0;
 }
 .timer.active {
-    background-color: var(--timer-active-bg);
+    background: var(--secondary-green);
     color: white;
+    transform: scale(1.05);
+    box-shadow: 0 4px 15px rgba(126, 211, 33, 0.3);
 }
+
+/* ===== THAY ĐỔI LỚN: TOÀN BỘ PHẦN BÀN CỜ ĐƯỢC VIẾT LẠI ===== */
 
 .board-frame {
     padding: 20px;
-    background: var(--border-wood);
-    border-radius: 8px;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.5), inset 0 0 10px rgba(0,0,0,0.4);
-    margin: 20px 0;
+    background: var(--board-wood);
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow), inset 0 0 15px rgba(0,0,0,0.2);
+    align-self: center;
+    width: fit-content;
+    margin: 0 auto;
 }
+
 #board {
-    display: grid;
-    grid-template-columns: repeat(9, var(--square-size));
-    grid-template-rows: repeat(10, var(--square-size));
-    background-color: var(--board-bg);
     position: relative;
-    border: 2px solid var(--line-color);
+    /* Kích thước chính xác của 8x9 ô */
+    width: calc(var(--square-size) * 8);
+    height: calc(var(--square-size) * 9);
+    background-color: var(--board-bg);
+    
+    /* Viền ngoài cùng của bàn cờ */
+    border: var(--line-width) solid var(--line-color);
+    padding: 0; /* Bỏ padding cũ, để các đường kẻ vẽ từ mép */
+    
+    transition: transform 0.6s ease-in-out;
+    transform-origin: center center;
 }
+
+/* Khi thêm class .flipped, bàn cờ sẽ bị lật 180 độ */
+#board.flipped {
+    transform: rotate(180deg);
+}
+
+/* Cần lật ngược các quân cờ để không bị ngược đầu */
+#board.flipped .piece {
+    transform: rotate(180deg);
+}
+
+
+/* ::before: Vẽ các đường kẻ ngang và dọc bên trong */
 #board::before {
-    content: ''; position: absolute; top: calc(var(--square-size) / 2); left: calc(var(--square-size) / 2);
-    width: calc(8 * var(--square-size)); height: calc(9 * var(--square-size)); z-index: 0;
+    content: '';
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    pointer-events: none;
+
+    /* SỬA LỖI: Kết hợp tất cả các hình nền thành MỘT thuộc tính.
+      - Nền 1: Vẽ đường ngang (0deg) trên TOÀN BỘ bàn cờ.
+      - Nền 2: Vẽ đường dọc (90deg) CHỈ cho 4 hàng trên cùng.
+      - Nền 3: Vẽ đường dọc (90deg) CHỈ cho 4 hàng dưới cùng.
+    */
     background-image: 
-        repeating-linear-gradient(to bottom, var(--line-color), var(--line-color) 1px, transparent 1px, transparent var(--square-size)),
-        repeating-linear-gradient(to right, var(--line-color), var(--line-color) 1px, transparent 1px, transparent var(--square-size)),
-        repeating-linear-gradient(to right, var(--line-color), var(--line-color) 1px, transparent 1px, transparent var(--square-size)),
-        linear-gradient(to right, var(--line-color), var(--line-color) 1px, transparent 1px, transparent calc(100% - 1px), var(--line-color) calc(100% - 1px), var(--line-color) 100%),
-        linear-gradient(to bottom right, transparent calc(50% - 1px), var(--line-color) 50%, transparent calc(50% + 1px)),
-        linear-gradient(to bottom left, transparent calc(50% - 1px), var(--line-color) 50%, transparent calc(50% + 1px)),
-        linear-gradient(to bottom right, transparent calc(50% - 1px), var(--line-color) 50%, transparent calc(50% + 1px)),
-        linear-gradient(to bottom left, transparent calc(50% - 1px), var(--line-color) 50%, transparent calc(50% + 1px));
-    background-size: 100% 100%, 100% calc(4 * var(--square-size)), 100% calc(4 * var(--square-size)), 100% 100%, calc(2 * var(--square-size)) calc(2 * var(--square-size)), calc(2 * var(--square-size)) calc(2 * var(--square-size)), calc(2 * var(--square-size)) calc(2 * var(--square-size)), calc(2 * var(--square-size)) calc(2 * var(--square-size));
+        /* 1. Đường ngang (toàn bộ 100% chiều cao) */
+        repeating-linear-gradient(0deg, transparent 0, transparent calc(var(--square-size) - var(--line-width)), var(--line-color) calc(var(--square-size) - var(--line-width)), var(--line-color) var(--square-size)),
+        /* 2. Đường dọc (Nửa trên) */
+        repeating-linear-gradient(90deg, transparent 0, transparent calc(var(--square-size) - var(--line-width)), var(--line-color) calc(var(--square-size) - var(--line-width)), var(--line-color) var(--square-size)),
+        /* 3. Đường dọc (Nửa dưới) */
+        repeating-linear-gradient(90deg, transparent 0, transparent calc(var(--square-size) - var(--line-width)), var(--line-color) calc(var(--square-size) - var(--line-width)), var(--line-color) var(--square-size));
+
+    /* Kích thước tương ứng cho 3 hình nền trên */
+    background-size:
+        100% 100%, /* 1. Đường ngang: 100% chiều rộng, 100% chiều cao */
+        100% calc(var(--square-size) * 4), /* 2. Đường dọc: cao 4 ô (hàng 0-3) */
+        100% calc(var(--square-size) * 4); /* 3. Đường dọc: cao 4 ô (hàng 5-8) */
+        
+    /* Vị trí tương ứng cho 3 hình nền trên */
+    background-position:
+        0 0, /* 1. Đường ngang: Bắt đầu từ 0,0 */
+        0 0, /* 2. Đường dọc trên: Bắt đầu từ 0,0 */
+        0 calc(var(--square-size) * 5); /* 3. Đường dọc dưới: Bắt đầu từ hàng thứ 5 (sau sông) */
+}
+
+/* ::after: Vẽ cung, sông, và các mốc */
+#board::after {
+    content: '';
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    pointer-events: none;
+    
+    /* Dùng SVG nhúng để vẽ chữ Sông, đẹp và dễ xoay hơn */
+    --river-text-black: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 50'%3E%3Ctext x='50%' y='50%' dominant-baseline='central' text-anchor='middle' font-family='ZCOOL QingKe HuangYou, sans-serif' font-size='40' fill='rgba(0,0,0,0.1)' transform='rotate(180, 100, 25)'%3E楚 河%3C/text%3E%3C/svg%3E");
+    --river-text-red: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 50'%3E%3Ctext x='50%' y='50%' dominant-baseline='central' text-anchor='middle' font-family='ZCOOL QingKe HuangYou, sans-serif' font-size='40' fill='rgba(0,0,0,0.1)'%3E漢 界%3C/text%3E%3C/svg%3E");
+
+    /* ===== THAY ĐỔI: Thêm 64 gradient cho 18 vạch dấu (4 Pháo + 10 Tốt) ===== */
+    --m-h: linear-gradient(var(--line-color), var(--line-color)); /* Vạch ngang */
+    --m-v: linear-gradient(var(--line-color), var(--line-color)); /* Vạch dọc */
+
+    background-image:
+        /* Cung Đen */
+        linear-gradient(to bottom right, transparent 49.5%, var(--line-color) 49.5%, var(--line-color) 50.5%, transparent 50.5%),
+        linear-gradient(to top right, transparent 49.5%, var(--line-color) 49.5%, var(--line-color) 50.5%, transparent 50.5%),
+        /* Cung Đỏ */
+        linear-gradient(to bottom right, transparent 49.5%, var(--line-color) 49.5%, var(--line-color) 50.5%, transparent 50.5%),
+        linear-gradient(to top right, transparent 49.5%, var(--line-color) 49.5%, var(--line-color) 50.5%, transparent 50.5%),
+        /* Chữ Sông */
+        var(--river-text-black),
+        var(--river-text-red),
+
+        /* --- VẠCH DẤU PHÁO (4 vị trí * 4 góc * 2 vạch) --- */
+        /* Pháo (1, 2) */
+        var(--m-h), var(--m-v), /* Top-Left */
+        var(--m-h), var(--m-v), /* Top-Right */
+        var(--m-h), var(--m-v), /* Bottom-Left */
+        var(--m-h), var(--m-v), /* Bottom-Right */
+        /* Pháo (7, 2) */
+        var(--m-h), var(--m-v), /* Top-Left */
+        var(--m-h), var(--m-v), /* Top-Right */
+        var(--m-h), var(--m-v), /* Bottom-Left */
+        var(--m-h), var(--m-v), /* Bottom-Right */
+        /* Pháo (1, 7) */
+        var(--m-h), var(--m-v), /* Top-Left */
+        var(--m-h), var(--m-v), /* Top-Right */
+        var(--m-h), var(--m-v), /* Bottom-Left */
+        var(--m-h), var(--m-v), /* Bottom-Right */
+        /* Pháo (7, 7) */
+        var(--m-h), var(--m-v), /* Top-Left */
+        var(--m-h), var(--m-v), /* Top-Right */
+        var(--m-h), var(--m-v), /* Bottom-Left */
+        var(--m-h), var(--m-v), /* Bottom-Right */
+
+        /* --- VẠCH DẤU TỐT (10 vị trí) --- */
+        /* Tốt Hàng 3 (Biên) */
+        var(--m-h), var(--m-v), /* (0, 3) Top-Right */
+        var(--m-h), var(--m-v), /* (0, 3) Bottom-Right */
+        var(--m-h), var(--m-v), /* (8, 3) Top-Left */
+        var(--m-h), var(--m-v), /* (8, 3) Bottom-Left */
+        /* Tốt Hàng 6 (Biên) */
+        var(--m-h), var(--m-v), /* (0, 6) Top-Right */
+        var(--m-h), var(--m-v), /* (0, 6) Bottom-Right */
+        var(--m-h), var(--m-v), /* (8, 6) Top-Left */
+        var(--m-h), var(--m-v), /* (8, 6) Bottom-Left */
+        /* Tốt Hàng 3 (Giữa) */
+        var(--m-h), var(--m-v), var(--m-h), var(--m-v), /* (2, 3) TL, TR */
+        var(--m-h), var(--m-v), var(--m-h), var(--m-v), /* (2, 3) BL, BR */
+        var(--m-h), var(--m-v), var(--m-h), var(--m-v), /* (4, 3) TL, TR */
+        var(--m-h), var(--m-v), var(--m-h), var(--m-v), /* (4, 3) BL, BR */
+        var(--m-h), var(--m-v), var(--m-h), var(--m-v), /* (6, 3) TL, TR */
+        var(--m-h), var(--m-v), var(--m-h), var(--m-v), /* (6, 3) BL, BR */
+        /* Tốt Hàng 6 (Giữa) */
+        var(--m-h), var(--m-v), var(--m-h), var(--m-v), /* (2, 6) TL, TR */
+        var(--m-h), var(--m-v), var(--m-h), var(--m-v), /* (2, 6) BL, BR */
+        var(--m-h), var(--m-v), var(--m-h), var(--m-v), /* (4, 6) TL, TR */
+        var(--m-h), var(--m-v), var(--m-h), var(--m-v), /* (4, 6) BL, BR */
+        var(--m-h), var(--m-v), var(--m-h), var(--m-v), /* (6, 6) TL, TR */
+        var(--m-h), var(--m-v), var(--m-h), var(--m-v); /* (6, 6) BL, BR */
+
+    background-size:
+        /* Cung */
+        calc(var(--square-size) * 2) calc(var(--square-size) * 2), 
+        calc(var(--square-size) * 2) calc(var(--square-size) * 2),
+        calc(var(--square-size) * 2) calc(var(--square-size) * 2),
+        calc(var(--square-size) * 2) calc(var(--square-size) * 2),
+        /* Sông */
+        calc(var(--square-size) * 4) var(--square-size), 
+        calc(var(--square-size) * 4) var(--square-size),
+
+        /* --- VẠCH DẤU PHÁO (Kích thước) --- */
+        /* Pháo (1, 2) */
+        var(--marker-size) var(--marker-line-width), var(--marker-line-width) var(--marker-size), /* TL */
+        var(--marker-size) var(--marker-line-width), var(--marker-line-width) var(--marker-size), /* TR */
+        var(--marker-size) var(--marker-line-width), var(--marker-line-width) var(--marker-size), /* BL */
+        var(--marker-size) var(--marker-line-width), var(--marker-line-width) var(--marker-size), /* BR */
+        /* Pháo (7, 2) */
+        var(--marker-size) var(--marker-line-width), var(--marker-line-width) var(--marker-size), /* TL */
+        var(--marker-size) var(--marker-line-width), var(--marker-line-width) var(--marker-size), /* TR */
+        var(--marker-size) var(--marker-line-width), var(--marker-line-width) var(--marker-size), /* BL */
+        var(--marker-size) var(--marker-line-width), var(--marker-line-width) var(--marker-size), /* BR */
+        /* Pháo (1, 7) */
+        var(--marker-size) var(--marker-line-width), var(--marker-line-width) var(--marker-size), /* TL */
+        var(--marker-size) var(--marker-line-width), var(--marker-line-width) var(--marker-size), /* TR */
+        var(--marker-size) var(--marker-line-width), var(--marker-line-width) var(--marker-size), /* BL */
+        var(--marker-size) var(--marker-line-width), var(--marker-line-width) var(--marker-size), /* BR */
+        /* Pháo (7, 7) */
+        var(--marker-size) var(--marker-line-width), var(--marker-line-width) var(--marker-size), /* TL */
+        var(--marker-size) var(--marker-line-width), var(--marker-line-width) var(--marker-size), /* TR */
+        var(--marker-size) var(--marker-line-width), var(--marker-line-width) var(--marker-size), /* BL */
+        var(--marker-size) var(--marker-line-width), var(--marker-line-width) var(--marker-size), /* BR */
+        
+        /* --- VẠCH DẤU TỐT (Kích thước) --- */
+        /* Tốt Hàng 3 (Biên) */
+        var(--marker-size) var(--marker-line-width), var(--marker-line-width) var(--marker-size), /* (0, 3) TR */
+        var(--marker-size) var(--marker-line-width), var(--marker-line-width) var(--marker-size), /* (0, 3) BR */
+        var(--marker-size) var(--marker-line-width), var(--marker-line-width) var(--marker-size), /* (8, 3) TL */
+        var(--marker-size) var(--marker-line-width), var(--marker-line-width) var(--marker-size), /* (8, 3) BL */
+        /* Tốt Hàng 6 (Biên) */
+        var(--marker-size) var(--marker-line-width), var(--marker-line-width) var(--marker-size), /* (0, 6) TR */
+        var(--marker-size) var(--marker-line-width), var(--marker-line-width) var(--marker-size), /* (0, 6) BR */
+        var(--marker-size) var(--marker-line-width), var(--marker-line-width) var(--marker-size), /* (8, 6) TL */
+        var(--marker-size) var(--marker-line-width), var(--marker-line-width) var(--marker-size), /* (8, 6) BL */
+        /* Tốt Hàng 3 (Giữa) */
+        var(--marker-size) var(--marker-line-width), var(--marker-line-width) var(--marker-size), var(--marker-size) var(--marker-line-width), var(--marker-line-width) var(--marker-size), /* (2, 3) */
+        var(--marker-size) var(--marker-line-width), var(--marker-line-width) var(--marker-size), var(--marker-size) var(--marker-line-width), var(--marker-line-width) var(--marker-size),
+        var(--marker-size) var(--marker-line-width), var(--marker-line-width) var(--marker-size), var(--marker-size) var(--marker-line-width), var(--marker-line-width) var(--marker-size), /* (4, 3) */
+        var(--marker-size) var(--marker-line-width), var(--marker-line-width) var(--marker-size), var(--marker-size) var(--marker-line-width), var(--marker-line-width) var(--marker-size),
+        var(--marker-size) var(--marker-line-width), var(--marker-line-width) var(--marker-size), var(--marker-size) var(--marker-line-width), var(--marker-line-width) var(--marker-size), /* (6, 3) */
+        var(--marker-size) var(--marker-line-width), var(--marker-line-width) var(--marker-size), var(--marker-size) var(--marker-line-width), var(--marker-line-width) var(--marker-size),
+        /* Tốt Hàng 6 (Giữa) */
+        var(--marker-size) var(--marker-line-width), var(--marker-line-width) var(--marker-size), var(--marker-size) var(--marker-line-width), var(--marker-line-width) var(--marker-size), /* (2, 6) */
+        var(--marker-size) var(--marker-line-width), var(--marker-line-width) var(--marker-size), var(--marker-size) var(--marker-line-width), var(--marker-line-width) var(--marker-size),
+        var(--marker-size) var(--marker-line-width), var(--marker-line-width) var(--marker-size), var(--marker-size) var(--marker-line-width), var(--marker-line-width) var(--marker-size), /* (4, 6) */
+        var(--marker-size) var(--marker-line-width), var(--marker-line-width) var(--marker-size), var(--marker-size) var(--marker-line-width), var(--marker-line-width) var(--marker-size),
+        var(--marker-size) var(--marker-line-width), var(--marker-line-width) var(--marker-size), var(--marker-size) var(--marker-line-width), var(--marker-line-width) var(--marker-size), /* (6, 6) */
+        var(--marker-size) var(--marker-line-width), var(--marker-line-width) var(--marker-size), var(--marker-size) var(--marker-line-width), var(--marker-line-width) var(--marker-size);
+        
     background-repeat: no-repeat;
-    background-position: 0 0, 0 0, 0 calc(5 * var(--square-size)), 0 0, calc(3 * var(--square-size)) 0, calc(3 * var(--square-size)) 0, calc(3 * var(--square-size)) calc(7 * var(--square-size)), calc(3 * var(--square-size)) calc(7 * var(--square-size));
+
+    background-position:
+        /* Cung */
+        calc(var(--square-size) * 3) 0, 
+        calc(var(--square-size) * 3) 0,
+        calc(var(--square-size) * 3) calc(var(--square-size) * 7), 
+        calc(var(--square-size) * 3) calc(var(--square-size) * 7),
+        /* Sông */
+        0 calc(var(--square-size) * 4), 
+        calc(var(--square-size) * 4) calc(var(--square-size) * 4),
+
+        /* --- VẠCH DẤU PHÁO (Vị trí) --- */
+        /* Pháo (1, 2) - [H, V] */
+        calc(var(--square-size) * 1 - var(--marker-offset) - var(--marker-size)) calc(var(--square-size) * 2 - var(--marker-offset)), calc(var(--square-size) * 1 - var(--marker-offset)) calc(var(--square-size) * 2 - var(--marker-offset) - var(--marker-size)), /* TL */
+        calc(var(--square-size) * 1 + var(--marker-offset)) calc(var(--square-size) * 2 - var(--marker-offset)), calc(var(--square-size) * 1 + var(--marker-offset)) calc(var(--square-size) * 2 - var(--marker-offset) - var(--marker-size)), /* TR */
+        calc(var(--square-size) * 1 - var(--marker-offset) - var(--marker-size)) calc(var(--square-size) * 2 + var(--marker-offset)), calc(var(--square-size) * 1 - var(--marker-offset)) calc(var(--square-size) * 2 + var(--marker-offset)), /* BL */
+        calc(var(--square-size) * 1 + var(--marker-offset)) calc(var(--square-size) * 2 + var(--marker-offset)), calc(var(--square-size) * 1 + var(--marker-offset)) calc(var(--square-size) * 2 + var(--marker-offset)), /* BR */
+        /* Pháo (7, 2) */
+        calc(var(--square-size) * 7 - var(--marker-offset) - var(--marker-size)) calc(var(--square-size) * 2 - var(--marker-offset)), calc(var(--square-size) * 7 - var(--marker-offset)) calc(var(--square-size) * 2 - var(--marker-offset) - var(--marker-size)), /* TL */
+        calc(var(--square-size) * 7 + var(--marker-offset)) calc(var(--square-size) * 2 - var(--marker-offset)), calc(var(--square-size) * 7 + var(--marker-offset)) calc(var(--square-size) * 2 - var(--marker-offset) - var(--marker-size)), /* TR */
+        calc(var(--square-size) * 7 - var(--marker-offset) - var(--marker-size)) calc(var(--square-size) * 2 + var(--marker-offset)), calc(var(--square-size) * 7 - var(--marker-offset)) calc(var(--square-size) * 2 + var(--marker-offset)), /* BL */
+        calc(var(--square-size) * 7 + var(--marker-offset)) calc(var(--square-size) * 2 + var(--marker-offset)), calc(var(--square-size) * 7 + var(--marker-offset)) calc(var(--square-size) * 2 + var(--marker-offset)), /* BR */
+        /* Pháo (1, 7) */
+        calc(var(--square-size) * 1 - var(--marker-offset) - var(--marker-size)) calc(var(--square-size) * 7 - var(--marker-offset)), calc(var(--square-size) * 1 - var(--marker-offset)) calc(var(--square-size) * 7 - var(--marker-offset) - var(--marker-size)), /* TL */
+        calc(var(--square-size) * 1 + var(--marker-offset)) calc(var(--square-size) * 7 - var(--marker-offset)), calc(var(--square-size) * 1 + var(--marker-offset)) calc(var(--square-size) * 7 - var(--marker-offset) - var(--marker-size)), /* TR */
+        calc(var(--square-size) * 1 - var(--marker-offset) - var(--marker-size)) calc(var(--square-size) * 7 + var(--marker-offset)), calc(var(--square-size) * 1 - var(--marker-offset)) calc(var(--square-size) * 7 + var(--marker-offset)), /* BL */
+        calc(var(--square-size) * 1 + var(--marker-offset)) calc(var(--square-size) * 7 + var(--marker-offset)), calc(var(--square-size) * 1 + var(--marker-offset)) calc(var(--square-size) * 7 + var(--marker-offset)), /* BR */
+        /* Pháo (7, 7) */
+        calc(var(--square-size) * 7 - var(--marker-offset) - var(--marker-size)) calc(var(--square-size) * 7 - var(--marker-offset)), calc(var(--square-size) * 7 - var(--marker-offset)) calc(var(--square-size) * 7 - var(--marker-offset) - var(--marker-size)), /* TL */
+        calc(var(--square-size) * 7 + var(--marker-offset)) calc(var(--square-size) * 7 - var(--marker-offset)), calc(var(--square-size) * 7 + var(--marker-offset)) calc(var(--square-size) * 7 - var(--marker-offset) - var(--marker-size)), /* TR */
+        calc(var(--square-size) * 7 - var(--marker-offset) - var(--marker-size)) calc(var(--square-size) * 7 + var(--marker-offset)), calc(var(--square-size) * 7 - var(--marker-offset)) calc(var(--square-size) * 7 + var(--marker-offset)), /* BL */
+        calc(var(--square-size) * 7 + var(--marker-offset)) calc(var(--square-size) * 7 + var(--marker-offset)), calc(var(--square-size) * 7 + var(--marker-offset)) calc(var(--square-size) * 7 + var(--marker-offset)), /* BR */
+        
+        /* --- VẠCH DẤU TỐT (Vị trí) --- */
+        /* Tốt Hàng 3 (Biên) */
+        calc(var(--square-size) * 0 + var(--marker-offset)) calc(var(--square-size) * 3 - var(--marker-offset)), calc(var(--square-size) * 0 + var(--marker-offset)) calc(var(--square-size) * 3 - var(--marker-offset) - var(--marker-size)), /* (0, 3) TR */
+        calc(var(--square-size) * 0 + var(--marker-offset)) calc(var(--square-size) * 3 + var(--marker-offset)), calc(var(--square-size) * 0 + var(--marker-offset)) calc(var(--square-size) * 3 + var(--marker-offset)), /* (0, 3) BR */
+        calc(var(--square-size) * 8 - var(--marker-offset) - var(--marker-size)) calc(var(--square-size) * 3 - var(--marker-offset)), calc(var(--square-size) * 8 - var(--marker-offset)) calc(var(--square-size) * 3 - var(--marker-offset) - var(--marker-size)), /* (8, 3) TL */
+        calc(var(--square-size) * 8 - var(--marker-offset) - var(--marker-size)) calc(var(--square-size) * 3 + var(--marker-offset)), calc(var(--square-size) * 8 - var(--marker-offset)) calc(var(--square-size) * 3 + var(--marker-offset)), /* (8, 3) BL */
+        /* Tốt Hàng 6 (Biên) */
+        calc(var(--square-size) * 0 + var(--marker-offset)) calc(var(--square-size) * 6 - var(--marker-offset)), calc(var(--square-size) * 0 + var(--marker-offset)) calc(var(--square-size) * 6 - var(--marker-offset) - var(--marker-size)), /* (0, 6) TR */
+        calc(var(--square-size) * 0 + var(--marker-offset)) calc(var(--square-size) * 6 + var(--marker-offset)), calc(var(--square-size) * 0 + var(--marker-offset)) calc(var(--square-size) * 6 + var(--marker-offset)), /* (0, 6) BR */
+        calc(var(--square-size) * 8 - var(--marker-offset) - var(--marker-size)) calc(var(--square-size) * 6 - var(--marker-offset)), calc(var(--square-size) * 8 - var(--marker-offset)) calc(var(--square-size) * 6 - var(--marker-offset) - var(--marker-size)), /* (8, 6) TL */
+        calc(var(--square-size) * 8 - var(--marker-offset) - var(--marker-size)) calc(var(--square-size) * 6 + var(--marker-offset)), calc(var(--square-size) * 8 - var(--marker-offset)) calc(var(--square-size) * 6 + var(--marker-offset)), /* (8, 6) BL */
+        /* Tốt Hàng 3 (Giữa) - (2, 3) */
+        calc(var(--square-size) * 2 - var(--marker-offset) - var(--marker-size)) calc(var(--square-size) * 3 - var(--marker-offset)), calc(var(--square-size) * 2 - var(--marker-offset)) calc(var(--square-size) * 3 - var(--marker-offset) - var(--marker-size)), calc(var(--square-size) * 2 + var(--marker-offset)) calc(var(--square-size) * 3 - var(--marker-offset)), calc(var(--square-size) * 2 + var(--marker-offset)) calc(var(--square-size) * 3 - var(--marker-offset) - var(--marker-size)),
+        calc(var(--square-size) * 2 - var(--marker-offset) - var(--marker-size)) calc(var(--square-size) * 3 + var(--marker-offset)), calc(var(--square-size) * 2 - var(--marker-offset)) calc(var(--square-size) * 3 + var(--marker-offset)), calc(var(--square-size) * 2 + var(--marker-offset)) calc(var(--square-size) * 3 + var(--marker-offset)), calc(var(--square-size) * 2 + var(--marker-offset)) calc(var(--square-size) * 3 + var(--marker-offset)),
+        /* (4, 3) */
+        calc(var(--square-size) * 4 - var(--marker-offset) - var(--marker-size)) calc(var(--square-size) * 3 - var(--marker-offset)), calc(var(--square-size) * 4 - var(--marker-offset)) calc(var(--square-size) * 3 - var(--marker-offset) - var(--marker-size)), calc(var(--square-size) * 4 + var(--marker-offset)) calc(var(--square-size) * 3 - var(--marker-offset)), calc(var(--square-size) * 4 + var(--marker-offset)) calc(var(--square-size) * 3 - var(--marker-offset) - var(--marker-size)),
+        calc(var(--square-size) * 4 - var(--marker-offset) - var(--marker-size)) calc(var(--square-size) * 3 + var(--marker-offset)), calc(var(--square-size) * 4 - var(--marker-offset)) calc(var(--square-size) * 3 + var(--marker-offset)), calc(var(--square-size) * 4 + var(--marker-offset)) calc(var(--square-size) * 3 + var(--marker-offset)), calc(var(--square-size) * 4 + var(--marker-offset)) calc(var(--square-size) * 3 + var(--marker-offset)),
+        /* (6, 3) */
+        calc(var(--square-size) * 6 - var(--marker-offset) - var(--marker-size)) calc(var(--square-size) * 3 - var(--marker-offset)), calc(var(--square-size) * 6 - var(--marker-offset)) calc(var(--square-size) * 3 - var(--marker-offset) - var(--marker-size)), calc(var(--square-size) * 6 + var(--marker-offset)) calc(var(--square-size) * 3 - var(--marker-offset)), calc(var(--square-size) * 6 + var(--marker-offset)) calc(var(--square-size) * 3 - var(--marker-offset) - var(--marker-size)),
+        calc(var(--square-size) * 6 - var(--marker-offset) - var(--marker-size)) calc(var(--square-size) * 3 + var(--marker-offset)), calc(var(--square-size) * 6 - var(--marker-offset)) calc(var(--square-size) * 3 + var(--marker-offset)), calc(var(--square-size) * 6 + var(--marker-offset)) calc(var(--square-size) * 3 + var(--marker-offset)), calc(var(--square-size) * 6 + var(--marker-offset)) calc(var(--square-size) * 3 + var(--marker-offset)),
+        /* Tốt Hàng 6 (Giữa) - (2, 6) */
+        calc(var(--square-size) * 2 - var(--marker-offset) - var(--marker-size)) calc(var(--square-size) * 6 - var(--marker-offset)), calc(var(--square-size) * 2 - var(--marker-offset)) calc(var(--square-size) * 6 - var(--marker-offset) - var(--marker-size)), calc(var(--square-size) * 2 + var(--marker-offset)) calc(var(--square-size) * 6 - var(--marker-offset)), calc(var(--square-size) * 2 + var(--marker-offset)) calc(var(--square-size) * 6 - var(--marker-offset) - var(--marker-size)),
+        calc(var(--square-size) * 2 - var(--marker-offset) - var(--marker-size)) calc(var(--square-size) * 6 + var(--marker-offset)), calc(var(--square-size) * 2 - var(--marker-offset)) calc(var(--square-size) * 6 + var(--marker-offset)), calc(var(--square-size) * 2 + var(--marker-offset)) calc(var(--square-size) * 6 + var(--marker-offset)), calc(var(--square-size) * 2 + var(--marker-offset)) calc(var(--square-size) * 6 + var(--marker-offset)),
+        /* (4, 6) */
+        calc(var(--square-size) * 4 - var(--marker-offset) - var(--marker-size)) calc(var(--square-size) * 6 - var(--marker-offset)), calc(var(--square-size) * 4 - var(--marker-offset)) calc(var(--square-size) * 6 - var(--marker-offset) - var(--marker-size)), calc(var(--square-size) * 4 + var(--marker-offset)) calc(var(--square-size) * 6 - var(--marker-offset)), calc(var(--square-size) * 4 + var(--marker-offset)) calc(var(--square-size) * 6 - var(--marker-offset) - var(--marker-size)),
+        calc(var(--square-size) * 4 - var(--marker-offset) - var(--marker-size)) calc(var(--square-size) * 6 + var(--marker-offset)), calc(var(--square-size) * 4 - var(--marker-offset)) calc(var(--square-size) * 6 + var(--marker-offset)), calc(var(--square-size) * 4 + var(--marker-offset)) calc(var(--square-size) * 6 + var(--marker-offset)), calc(var(--square-size) * 4 + var(--marker-offset)) calc(var(--square-size) * 6 + var(--marker-offset)),
+        /* (6, 6) */
+        calc(var(--square-size) * 6 - var(--marker-offset) - var(--marker-size)) calc(var(--square-size) * 6 - var(--marker-offset)), calc(var(--square-size) * 6 - var(--marker-offset)) calc(var(--square-size) * 6 - var(--marker-offset) - var(--marker-size)), calc(var(--square-size) * 6 + var(--marker-offset)) calc(var(--square-size) * 6 - var(--marker-offset)), calc(var(--square-size) * 6 + var(--marker-offset)) calc(var(--square-size) * 6 - var(--marker-offset) - var(--marker-size)),
+        calc(var(--square-size) * 6 - var(--marker-offset) - var(--marker-size)) calc(var(--square-size) * 6 + var(--marker-offset)), calc(var(--square-size) * 6 - var(--marker-offset)) calc(var(--square-size) * 6 + var(--marker-offset)), calc(var(--square-size) * 6 + var(--marker-offset)) calc(var(--square-size) * 6 + var(--marker-offset)), calc(var(--square-size) * 6 + var(--marker-offset)) calc(var(--square-size) * 6 + var(--marker-offset));
 }
+
+/* --- QUÂN CỜ VÀ HIỆU ỨNG --- */
+/* THAY ĐỔI: Định vị ô .square để đặt quân cờ vào đúng giao điểm */
 .square {
-    width: var(--square-size); height: var(--square-size); box-sizing: border-box;
-    position: relative; display: flex; justify-content: center; align-items: center; z-index: 1;
-}
-.square img {
-    width: var(--piece-size); height: var(--piece-size); cursor: pointer; border-radius: 50%;
-    background-color: #fff; box-shadow: 0 2px 5px rgba(0, 0, 0, 0.4);
-    transition: transform 0.1s ease-in-out, box-shadow 0.2s ease;
-}
-.square.selected img {
-    box-shadow: 0 0 15px 5px var(--selected-glow), 0 2px 5px rgba(0, 0, 0, 0.4);
-    transform: scale(1.1);
+    position: absolute;
+    width: calc(var(--square-size) * var(--piece-size-ratio));
+    height: calc(var(--square-size) * var(--piece-size-ratio));
+    transform: translate(-50%, -50%);
+    z-index: 3;
+    border-radius: 50%;
+    
 }
 
-.sidebar h2, .sidebar h3 {
-    margin-top: 0;
-    border-bottom: 1px solid #555;
-    padding-bottom: 10px;
-    margin-bottom: 15px;
-}
-#turn-indicator { font-size: 18px; font-weight: 500; margin-bottom: 15px; }
-#turn-indicator .red { color: #ff5252; font-weight: bold; }
-#turn-indicator .black { color: #cccccc; font-weight: bold; }
-#status-message { font-style: italic; color: #a0a0a0; min-height: 40px; }
-.move-history { flex-grow: 1; overflow-y: auto; }
-#move-list {
-    list-style-type: none;
-    padding: 0;
-    margin: 0;
-    font-size: 14px;
-}
-#move-list li {
-    padding: 8px 10px;
-    border-bottom: 1px solid #3e3e3e;
-}
-#move-list li:nth-child(odd) { background-color: rgba(0, 0, 0, 0.1); }
-
-/* Lớp nền mờ, bao phủ toàn màn hình */
-.modal-overlay {
-    position: fixed; /* Giữ cố định trên màn hình */
-    top: 0;
-    left: 0;
+/* THAY ĐỔI: CSS để vẽ quân cờ (thay cho ảnh) */
+.piece {
     width: 100%;
     height: 100%;
-    background-color: rgba(0, 0, 0, 0.7); /* Màu đen mờ */
-    
-    /* Dùng flexbox để căn giữa nội dung */
-    display: none; /* << Mặc định sẽ bị ẩn đi */
+    border-radius: 50%;
+    box-sizing: border-box;
+    display: flex;
     justify-content: center;
     align-items: center;
-    
-    z-index: 1000; /* Luôn nằm trên cùng */
+    font-family: var(--font-family-piece);
+    font-size: calc(var(--square-size) * var(--piece-size-ratio) * 0.65);
+    cursor: pointer;
+    transition: all 0.2s ease-in-out;
+    background: radial-gradient(ellipse at top, #f2e4c9, #e6c898);
+    border: 2px solid rgba(0, 0, 0, 0.2);
+    box-shadow: inset 0 -2px 3px rgba(0,0,0,0.3), inset 0 2px 3px rgba(255,255,255,0.4), 0 5px 8px rgba(0,0,0,0.5);
+    text-shadow: 1px 1px 0px rgba(255,255,255,0.2), -1px -1px 0px rgba(0,0,0,0.3);
+    transition: transform 0.6s ease-in-out;
+}
+.piece:hover {
+    transform: translateY(-3px);
+    box-shadow: inset 0 -2px 3px rgba(0,0,0,0.3), inset 0 2px 3px rgba(255,255,255,0.4), 0 8px 15px rgba(0,0,0,0.5);
+}
+.piece.red { color: #d32f2f; }
+.piece.black { color: #212121; }
+
+/* Hiệu ứng Highlight */
+.square.selected .piece {
+    transform: translateY(-3px) scale(1.05);
+    box-shadow: 0 0 15px 5px rgba(74, 144, 226, 0.5), inset 0 -2px 3px rgba(0,0,0,0.3), inset 0 2px 3px rgba(255,255,255,0.4), 0 8px 15px rgba(0,0,0,0.5);
+}
+.square.valid-move-dot::after {
+    content: '';
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    width: 30%; height: 30%;
+    background: var(--secondary-green);
+    border-radius: 50%;
+    box-shadow: 0 2px 8px rgba(126, 211, 33, 0.4);
+    animation: pulse 1.5s infinite ease-in-out;
+}
+.square.last-move {
+    background-color: rgba(74, 144, 226, 0.2);
+    border-radius: 50%;
+}
+@keyframes pulse {
+    0%, 100% { transform: translate(-50%, -50%) scale(0.9); opacity: 0.7; }
+    50% { transform: translate(-50%, -50%) scale(1.1); opacity: 1; }
 }
 
-/* Hộp thoại thông báo */
-.modal-content {
-    background-color: #3a3a3c; /* Màu nền tối */
-    color: #f0f0f0; /* Chữ màu sáng */
-    padding: 20px 40px;
-    border-radius: 8px;
-    text-align: center;
-    box-shadow: 0 5px 15px rgba(0,0,0,0.5);
-    animation: fadeIn 0.3s ease-in-out;
-}
+/* --- Các thành phần giao diện khác (Sidebar, Modal, Quân bị ăn...) --- */
 
-.modal-content h2 {
+.sidebar h2 {
     margin-top: 0;
-    color: #ffffff;
-    border-bottom: 1px solid #555;
-    padding-bottom: 10px;
+    border-bottom: 1px solid var(--border-light);
+    padding-bottom: 15px;
+    margin-bottom: 20px;
+    font-weight: 600;
 }
-
-.modal-content p {
-    font-size: 1.2em;
-    margin: 20px 0;
+#turn-indicator {
+    font-size: 18px; font-weight: 600; margin-bottom: 20px; padding: 15px;
+    background: #f8f9fa; border-radius: 10px; text-align: center;
+    border: 1px solid var(--border-light);
 }
+#turn-indicator .red { color: var(--accent-red); }
+#turn-indicator .black { color: var(--text-dark); }
+#status-message {
+    font-style: italic; color: var(--text-light); padding: 15px;
+    background: rgba(74, 144, 226, 0.05); border-radius: 8px;
+    margin-bottom: 20px; text-align: center;
+}
+.move-history { flex-grow: 1; overflow-y: auto; }
+.game-actions button, .draw-offer-response button {
+    padding: 12px 20px; margin: 8px 0; border: none; border-radius: 8px;
+    font-weight: 600; cursor: pointer; transition: all 0.3s ease;
+    width: 100%; color: white;
+}
+.game-actions button:hover, .draw-offer-response button:hover { transform: translateY(-2px); box-shadow: var(--shadow); }
+#offer-draw-btn { background: var(--accent-orange); }
+#resign-btn { background: var(--accent-red); }
+#accept-draw-btn { background: var(--secondary-green); }
+#decline-draw-btn { background: #6c757d; }
 
-/* Nút nhấn trong modal */
+.captured-pieces {
+    /*position: absolute; left: 15px; display: flex; align-items: center;
+    height: 100%; flex-wrap: wrap; gap: 3px; max-width: calc(100% - 220px); */
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 3px;
+    
+    /* Đặt chiều rộng cơ sở và cho phép co lại nếu cần */
+    flex-basis: 30%; /* Chiếm khoảng 30% chiều rộng panel */
+    flex-shrink: 1; /* Cho phép co lại nếu không đủ chỗ */
+    justify-content: flex-start; /* Căn các quân cờ về bên trái */
+}
+.captured-pieces img { width: 28px; height: 28px; opacity: 0.7; }
+/*.player-info-panel.top .captured-pieces { right: 15px; left: auto; justify-content: flex-end; }*/
+
+.modal-overlay {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background-color: rgba(0, 0, 0, 0.6); display: none;
+    justify-content: center; align-items: center;
+    z-index: 1000; backdrop-filter: blur(5px);
+}
+.modal-content {
+    background: var(--bg-card); color: var(--text-dark); padding: 40px;
+    border-radius: var(--border-radius); text-align: center;
+    box-shadow: var(--shadow); max-width: 500px; margin: 20px;
+    position: relative; overflow: hidden;
+}
+.modal-content::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 4px;
+    background: linear-gradient(135deg, var(--primary-blue) 0%, var(--secondary-green) 100%);
+}
+.modal-content h2 { margin-top: 0; font-weight: 600; }
+.modal-content p { font-size: 1.2em; margin: 25px 0; color: var(--text-light); }
 .modal-button {
-    display: inline-block;
-    padding: 10px 25px;
-    background-color: #4CAF50; /* Màu xanh lá */
-    color: white;
-    text-decoration: none;
-    border-radius: 5px;
-    font-weight: bold;
-    transition: background-color 0.2s;
+    display: inline-block; padding: 15px 30px; background: var(--primary-blue);
+    color: white; text-decoration: none; border-radius: 10px;
+    font-weight: 600; transition: all 0.3s ease; box-shadow: var(--shadow);
+}
+.modal-button:hover { transform: translateY(-2px); box-shadow: var(--shadow-hover); }
+
+.highlight {
+  background-color: rgba(255, 230, 0, 0.4);
+  border-radius: 50%;
 }
 
-.modal-button:hover {
-    background-color: #45a049;
+
+/* --- Responsive Design --- */
+
+@media (max-width: 768px) {
+  :root {
+    --square-size: 45px;
+  }
 }
 
-/* Hiệu ứng xuất hiện */
-@keyframes fadeIn {
-    from {
-        opacity: 0;
-        transform: scale(0.9);
-    }
-    to {
-        opacity: 1;
-        transform: scale(1);
-    }
+@media (max-width: 1200px) {
+    .game-container { grid-template-columns: 1fr; max-width: 800px; }
+    .sidebar { order: -1; }
+    :root { --square-size: 55px; }
+}
+@media (max-width: 768px) {
+    body { padding: 10px; }
+    .game-container { padding: 0; gap: 20px; }
+    :root { --square-size: 45px; }
+    .timer { font-size: 24px; padding: 8px 12px; min-width: 90px; }
+    .captured-pieces { max-width: calc(100% - 150px); }
+    .captured-pieces img { width: 24px; height: 24px; }
 }

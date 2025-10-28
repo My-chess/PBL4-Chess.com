@@ -1,6 +1,7 @@
 package Model.DAO;
 
 import Model.BEAN.Board;
+import Model.BEAN.MatchBEAN;
 import Model.BEAN.MoveBEAN;
 import Model.BEAN.PieceBEAN;
 
@@ -23,39 +24,64 @@ public class FirebaseService {
     /**
      * Tạo một trận đấu mới và trả về ID của nó.
      */
-    public static String createNewMatch(String player1Id, String player1DisplayName)
+    public static String createNewMatch(String player1Id, String player1DisplayName, long initialTimeMs, boolean isRanked, String sidePreference)
             throws ExecutionException, InterruptedException {
-        DocumentReference docRef = db.collection("matches").document();
         
-        // Lấy thông tin người chơi 1 (phần này giữ nguyên)
+        // Bước 1: Yêu cầu Firestore tạo một document mới trong collection 'matches' và lấy ID của nó.
+        // Document này vẫn còn trống ở thời điểm hiện tại.
+        DocumentReference docRef = db.collection("matches").document();
+
+        // Bước 2: Lấy thông tin ELO của người tạo phòng từ collection 'users'.
         DocumentSnapshot userDoc = db.collection("users").document(player1Id).get().get();
         long player1Elo = userDoc.exists() ? userDoc.getLong("elo") : 1000;
-        Map<String, Object> player1 = new HashMap<>();
-        player1.put("uid", player1Id);
-        player1.put("displayName", player1DisplayName);
-        player1.put("elo", player1Elo);
+        
+        // Tạo một đối tượng Map để lưu thông tin của người chơi 1.
+        // Map này sẽ được lưu như một object lồng trong document trận đấu.
+        Map<String, Object> player1Info = new HashMap<>();
+        player1Info.put("uid", player1Id);
+        player1Info.put("displayName", player1DisplayName);
+        player1Info.put("elo", player1Elo);
 
-        // Tạo bàn cờ ban đầu (phần này giữ nguyên)
-        Board initialBoard = new Board();
-        Map<String, String> initialBoardState = boardToMap(initialBoard);
+        // Bước 3: Chuẩn bị một Map lớn chứa tất cả dữ liệu cho document trận đấu.
+        Map<String, Object> matchData = new HashMap<>();
 
-        // >>> ĐÂY LÀ PHẦN QUAN TRỌNG CẦN KIỂM TRA LẠI <<<
-        // Tạo document trận đấu với ĐẦY ĐỦ các trường cần thiết
-        Map<String, Object> match = new HashMap<>();
-        match.put("player1", player1);
-        match.put("player2", null);
-        match.put("status", "WAITING");
-        match.put("currentTurn", "Red");
-        match.put("boardState", initialBoardState); // Trạng thái bàn cờ
+        // --- CÁC TRƯỜNG THÔNG TIN CƠ BẢN CỦA TRẬN ĐẤU ---
+        matchData.put("status", "WAITING"); // Trạng thái ban đầu luôn là "Đang chờ".
+        matchData.put("currentTurn", "Red"); // Theo luật, quân Đỏ luôn đi trước.
+        matchData.put("boardState", boardToMap(new Board())); // Tạo bàn cờ ban đầu.
+        matchData.put("startTime", Timestamp.now()); // Thời điểm trận đấu được tạo.
+        matchData.put("lastMoveTimestamp", Timestamp.now()); // Khởi tạo mốc thời gian.
+        matchData.put("participantIds", java.util.Arrays.asList(player1Id)); // Mảng chứa ID người chơi, dùng cho truy vấn lịch sử.
+        matchData.put("boardHistory", new HashMap<String, Long>()); // Map để theo dõi lặp lại nước đi.
 
-        // --- ĐẢM BẢO BẠN CÓ 3 DÒNG NÀY ---
-        match.put("startTime", com.google.cloud.Timestamp.now());
-        match.put("lastMoveTimestamp", com.google.cloud.Timestamp.now());
-        match.put("player1TimeLeftMs", INITIAL_TIME_MS); // 10 phút
-        match.put("player2TimeLeftMs", INITIAL_TIME_MS); // 10 phút
-        // ------------------------------------
+        // --- CÁC TRƯỜNG MỚI DỰA TRÊN CÀI ĐẶT CỦA NGƯỜI DÙNG ---
+        matchData.put("isRanked", isRanked); // Lưu đây là trận xếp hạng hay không.
+        matchData.put("initialTimeMs", initialTimeMs); // Lưu cài đặt thời gian gốc (ví dụ: 600000ms cho 10 phút).
+        matchData.put("player1TimeLeftMs", initialTimeMs); // Set đồng hồ đếm ngược cho người chơi 1.
+        matchData.put("player2TimeLeftMs", initialTimeMs); // Set đồng hồ đếm ngược cho người chơi 2.
+        
+        // --- XỬ LÝ LỰA CHỌN MÀU QUÂN ---
+        // Logic này quyết định người tạo phòng sẽ được gán vào 'player1' (Đỏ) hay 'player2' (Đen).
+        if ("Black".equals(sidePreference)) {
+            // Nếu người tạo muốn chơi quân Đen:
+            // - Để trống 'player1' (slot cho quân Đỏ).
+            // - Gán thông tin người tạo vào 'player2' (slot cho quân Đen).
+            matchData.put("player1", null);
+            matchData.put("player2", player1Info);
+        } else {
+            // Nếu người tạo muốn chơi quân Đỏ hoặc Ngẫu nhiên:
+            // - Mặc định gán họ vào 'player1' (slot cho quân Đỏ).
+            // - Để trống 'player2'.
+            // Khi người chơi khác tham gia một phòng "Ngẫu nhiên", logic ở JoinGameServlet có thể quyết định hoán đổi vị trí.
+            matchData.put("player1", player1Info);
+            matchData.put("player2", null);
+        }
 
-        docRef.set(match).get();
+        // Bước 4: Ghi toàn bộ dữ liệu trong Map vào document trên Firestore.
+        // Lệnh .get() ở cuối để đảm bảo thao tác ghi đã hoàn tất trước khi tiếp tục.
+        docRef.set(matchData).get();
+        
+        // Bước 5: Trả về ID của document vừa tạo để Servlet có thể chuyển hướng người dùng.
         return docRef.getId();
     }
     
@@ -74,87 +100,115 @@ public class FirebaseService {
         return boardState;
     }
     /**
-     * >>> HÀM ĐÃ ĐƯỢC CẬP NHẬT HOÀN CHỈNH <<<
-     * Xử lý nước đi, xác thực, cập nhật trạng thái bàn cờ VÀ lưu lại lịch sử nước đi.
-     * @return true nếu nước đi hợp lệ và đã cập nhật thành công, false nếu ngược lại.
+     * >>> HÀM ĐÃ ĐƯỢC TỐI ƯU HÓA HOÀN TOÀN <<<
+     * Xử lý nước đi, xác thực, kiểm tra chiếu bí, VÀ cập nhật trạng thái bàn cờ.
+     * @return String cho biết kết quả: "SUCCESS", "CHECKMATE", hoặc "INVALID_MOVE".
      */
-    public static boolean processMoveAndUpdateBoard(String matchId, int startX, int startY, int endX, int endY) throws Exception {
+    public static String processMoveAndUpdateBoard(String matchId, int startX, int startY, int endX, int endY) throws Exception {
         DocumentReference matchRef = db.collection("matches").document(matchId);
-        DocumentSnapshot matchState = matchRef.get().get(); // Lấy trạng thái mới nhất
+        DocumentSnapshot matchState = matchRef.get().get();
 
         if (matchState == null || !"IN_PROGRESS".equals(matchState.getString("status"))) {
             System.out.println("SERVER VALIDATION FAILED: Match not found or not in progress.");
-            return false;
+            return "INVALID_MOVE";
         }
 
-        // 1. Lấy trạng thái bàn cờ hiện tại từ Firestore
+        // 1. Tái tạo bàn cờ từ trạng thái trên Firestore
         @SuppressWarnings("unchecked")
         Map<String, String> currentBoardStateMap = (Map<String, String>) matchState.get("boardState");
-        
-        // 2. Tái tạo đối tượng Board từ trạng thái đó
         Board currentBoard = new Board(currentBoardStateMap);
-        
-        // 3. Kiểm tra nước đi có hợp lệ không
+
+        // 2. Xác thực nước đi bằng logic của Board
         if (!currentBoard.isMoveValid(startX, startY, endX, endY)) {
             System.out.println("SERVER VALIDATION FAILED: Move is invalid according to game rules.");
-            return false; // Trả về false nếu không hợp lệ
+            return "INVALID_MOVE"; // Nước đi không hợp lệ, trả về ngay
         }
-        
-     // 1. Lấy thông tin về lượt đi vừa kết thúc
-        String lastTurnColor = matchState.getString("currentTurn");
-        Timestamp lastMoveTimestamp = matchState.getTimestamp("lastMoveTimestamp");
+        Map<String, Long> boardHistory = (Map<String, Long>) matchState.get("boardHistory");
+        if (boardHistory == null) {
+            boardHistory = new HashMap<>();
+        }
+        String newBoardKey = generateBoardStateKey(currentBoard);
+        // Cập nhật số lần lặp lại
+        long repetitionCount = boardHistory.getOrDefault(newBoardKey, 0L) + 1;
+        boardHistory.put(newBoardKey, repetitionCount);
 
-        // 2. Tính thời gian đã trôi qua cho lượt đi này (tính bằng mili giây)
-        long timeElapsedMs = com.google.cloud.Timestamp.now().toDate().getTime() - lastMoveTimestamp.toDate().getTime();
+        // Kiểm tra hòa do lặp lại
+        if (repetitionCount >= 3) {
+            System.out.println("!!! DRAW BY 3-FOLD REPETITION !!!");
+            endMatchAsDraw(matchId, "DRAW_REPETITION");
+            
+            // Cập nhật chỉ số hòa
+//            Map<String, Object> p1 = (Map<String, Object>) matchState.get("player1");
+//            Map<String, Object> p2 = (Map<String, Object>) matchState.get("player2");
+            //UserService.updateUserStatsAfterMatch((String)p1.get("uid"), (String)p2.get("uid"), true);
+            
+            // Trả về kết quả đặc biệt để GameEndpoint có thể thông báo
+            return "DRAW_REPETITION";
+        }
 
-        // 3. Xác định trường thời gian của người chơi vừa đi
-        String timeLeftField = "Red".equals(lastTurnColor) ? "player1TimeLeftMs" : "player2TimeLeftMs";
-
-        // 4. Lấy thời gian còn lại cũ và tính thời gian còn lại mới
-        long oldTimeLeftMs = matchState.getLong(timeLeftField);
-        long newTimeLeftMs = oldTimeLeftMs - timeElapsedMs;
-        // Đảm bảo thời gian không bao giờ âm
-        newTimeLeftMs = Math.max(0, newTimeLeftMs);
-        
-        // 4. Nếu hợp lệ, lấy thông tin quân cờ đã di chuyển
-        PieceBEAN pieceMoved = currentBoard.getPieceAt(startX, startY);
+        // 3. Nước đi hợp lệ. Lấy thông tin cần thiết TRƯỚC KHI thực hiện.
         String currentTurnColor = matchState.getString("currentTurn");
+        String opponentColor = "Red".equals(currentTurnColor) ? "Black" : "Red";
+        PieceBEAN pieceMoved = currentBoard.getPieceAt(startX, startY);
 
-        // 5. Thực hiện nước đi trên đối tượng Board ở server
+        // 4. >>> THỰC HIỆN NƯỚC ĐI TRÊN ĐỐI TƯỢNG BOARD TRONG BỘ NHỚ <<<
         currentBoard.executeMove(startX, startY, endX, endY);
-        
-        // 6. Chuyển đổi bàn cờ sau khi đi thành Map để lưu lại
+
+        // 5. >>> KIỂM TRA CHIẾU BÍ NGAY TRÊN BOARD TRONG BỘ NHỚ <<<
+        boolean isCheckmate = currentBoard.isCheckmate(opponentColor);
+
+        // 6. Chuẩn bị dữ liệu để cập nhật lên Firestore
         Map<String, String> newBoardStateMap = boardToMap(currentBoard);
+        Map<String, Object> matchUpdates = new HashMap<>();
+        matchUpdates.put("boardState", newBoardStateMap);
+        matchUpdates.put("currentTurn", opponentColor); // Luôn đổi lượt
+        matchUpdates.put("lastMoveTimestamp", Timestamp.now());
+
+        // --- Cập nhật thời gian còn lại (logic cũ vẫn đúng) ---
+        Timestamp lastMoveTimestamp = matchState.getTimestamp("lastMoveTimestamp");
+        long timeElapsedMs = Timestamp.now().toDate().getTime() - lastMoveTimestamp.toDate().getTime();
+        String timeLeftField = "Red".equals(currentTurnColor) ? "player1TimeLeftMs" : "player2TimeLeftMs";
+        long oldTimeLeftMs = matchState.getLong(timeLeftField);
+        long newTimeLeftMs = Math.max(0, oldTimeLeftMs - timeElapsedMs);
+        matchUpdates.put(timeLeftField, newTimeLeftMs);
+        matchUpdates.put("boardHistory", boardHistory); // <-- Quan trọng: Lưu lại lịch sử
         
-        // 7. Chuẩn bị một giao dịch "batch write" để thực hiện nhiều thao tác cùng lúc
-        // Điều này đảm bảo rằng hoặc là TẤT CẢ cùng thành công, hoặc TẤT CẢ cùng thất bại.
+        
+        
+        // --- Nếu là chiếu bí, cập nhật thêm trạng thái kết thúc trận đấu ---
+        if (isCheckmate) {
+            System.out.println("!!! CHECKMATE DETECTED !!!");
+            Map<String, String> winnerInfo = (Map<String, String>) matchState.get(currentTurnColor.equals("Red") ? "player1" : "player2");
+            
+            matchUpdates.put("status", "COMPLETED");
+            matchUpdates.put("winReason", "CHECKMATE");
+            matchUpdates.put("winnerId", winnerInfo.get("uid"));
+            
+            // Ghi chú: hàm endMatch() cũ không còn cần thiết cho trường hợp chiếu bí nữa
+        }
+
+        // 7. Ghi tất cả thay đổi lên Firestore trong một batch
         WriteBatch batch = db.batch();
         
-        // Thao tác 1: Cập nhật document chính của trận đấu
-        Map<String, Object> matchUpdates = new HashMap<>();
-        matchUpdates.put("boardState", newBoardStateMap); // <-- Cập nhật trạng thái bàn cờ mới
-        matchUpdates.put("currentTurn", "Red".equals(currentTurnColor) ? "Black" : "Red");
-        matchUpdates.put("lastMoveTimestamp", Timestamp.now());
-        
-        matchUpdates.put(timeLeftField, newTimeLeftMs);
-        // ... (code cập nhật thời gian còn lại có thể thêm vào đây nếu cần) ...
+        // Thao tác 1: Cập nhật document trận đấu
         batch.update(matchRef, matchUpdates);
-        
-        // >>> THAO TÁC 2: TẠO VÀ LƯU LẠI LỊCH SỬ NƯỚC ĐI <<<
-        // Tạo một document mới trong subcollection "moves"
-        MoveBEAN moveRecord = new MoveBEAN(
-            currentTurnColor,
-            startX, startY, endX, endY,
-            pieceMoved.getClass().getSimpleName(),
-            Timestamp.now()
-        );
-        DocumentReference moveRef = matchRef.collection("moves").document(); // Tự động tạo ID mới
-        batch.set(moveRef, moveRecord); // Thêm thao tác tạo mới này vào batch
 
-        // 8. Thực thi batch write
+        // Thao tác 2: Lưu lại lịch sử nước đi
+        MoveBEAN moveRecord = new MoveBEAN(
+            currentTurnColor, startX, startY, endX, endY,
+            pieceMoved.getClass().getSimpleName(), Timestamp.now()
+        );
+        DocumentReference moveRef = matchRef.collection("moves").document();
+        batch.set(moveRef, moveRecord);
+
+        // 8. Commit và trả về kết quả
         batch.commit().get();
-        System.out.println("Successfully updated board state AND saved move history.");
-        return true;
+        
+        if (isCheckmate) {
+            return "CHECKMATE";
+        } else {
+            return "SUCCESS";
+        }
     }
 
     /**
@@ -182,10 +236,41 @@ public class FirebaseService {
         updates.put("player2", player2);
         updates.put("status", "IN_PROGRESS");
         updates.put("lastMoveTimestamp", com.google.cloud.Timestamp.now());
+        updates.put("participantIds", FieldValue.arrayUnion(player2Id));
 
         db.collection("matches").document(matchId).update(updates).get();
     }
+    
+    public static List<MatchBEAN> getMatchHistory(String userId) throws ExecutionException, InterruptedException {
+        ApiFuture<QuerySnapshot> future = db.collection("matches")
+                .whereArrayContains("participantIds", userId)
+                .whereEqualTo("status", "COMPLETED")
+                .orderBy("startTime", Query.Direction.DESCENDING)
+                .limit(50)
+                .get();
+        
+        List<MatchBEAN> matchHistory = new java.util.ArrayList<>();
+        for (DocumentSnapshot doc : future.get().getDocuments()) {
+            // Firestore SDK có thể tự động chuyển đổi DocumentSnapshot thành POJO (Plain Old Java Object)
+            MatchBEAN match = doc.toObject(MatchBEAN.class);
+            match.setMatchId(doc.getId()); // Đừng quên set ID của trận đấu
+            matchHistory.add(match);
+        }
+        
+        return matchHistory;
+    }
+    
+    public static List<MoveBEAN> getMovesForMatch(String matchId) throws ExecutionException, InterruptedException {
+        ApiFuture<QuerySnapshot> future = db.collection("matches").document(matchId).collection("moves")
+                .orderBy("timestamp", Query.Direction.ASCENDING) // Quan trọng: Sắp xếp các nước đi theo đúng thứ tự thời gian
+                .get();
 
+        List<MoveBEAN> moves = new java.util.ArrayList<>();
+        for (DocumentSnapshot doc : future.get().getDocuments()) {
+            moves.add(doc.toObject(MoveBEAN.class));
+        }
+        return moves;
+    }
     /**
      * Lưu nước đi, cập nhật thời gian, và chuyển lượt đi.
      */
@@ -258,5 +343,47 @@ public class FirebaseService {
         }
         
         return waitingMatches;
+    }
+    public static void endMatchAsDraw(String matchId, String reason) 
+            throws ExecutionException, InterruptedException {
+        Map<String, Object> updates = new HashMap<>();
+        updates.put("status", "COMPLETED");
+        updates.put("winnerId", null); // Không có người thắng
+        updates.put("winReason", reason); // e.g., "DRAW_AGREEMENT"
+        
+        db.collection("matches").document(matchId).update(updates).get();
+    }
+    private static String generateBoardStateKey(Board board) {
+        StringBuilder sb = new StringBuilder();
+        // Sắp xếp để đảm bảo key luôn nhất quán
+        java.util.TreeMap<String, String> sortedBoard = new java.util.TreeMap<>(boardToMap(board));
+        for (Map.Entry<String, String> entry : sortedBoard.entrySet()) {
+            sb.append(entry.getKey()).append(":").append(entry.getValue()).append(";");
+        }
+        return sb.toString();
+    }
+    
+    public static List<int[]> getValidMovesForPiece(String matchId, int pieceX, int pieceY) throws Exception {
+        DocumentSnapshot matchState = getMatch(matchId);
+        if (matchState == null) {
+            throw new Exception("Match not found.");
+        }
+
+        // Tái tạo lại bàn cờ từ trạng thái hiện tại
+        Map<String, String> currentBoardStateMap = (Map<String, String>) matchState.get("boardState");
+        Board currentBoard = new Board(currentBoardStateMap);
+
+        List<int[]> validMoves = new ArrayList<>();
+        
+        // Duyệt qua tất cả các ô trên bàn cờ
+        for (int endY = 0; endY < 10; endY++) {
+            for (int endX = 0; endX < 9; endX++) {
+                // Sử dụng hàm isMoveValid đã có sẵn để kiểm tra
+                if (currentBoard.isMoveValid(pieceX, pieceY, endX, endY)) {
+                    validMoves.add(new int[]{endX, endY});
+                }
+            }
+        }
+        return validMoves;
     }
 }

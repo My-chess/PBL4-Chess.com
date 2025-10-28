@@ -1,134 +1,288 @@
 :root {
-    --bg-dark: #1a1a1a;
-    --bg-medium: #2c2c2c;
-    --bg-light: #3e3e3e;
-    --text-primary: #e0e0e0;
-    --text-secondary: #a0a0a0;
-    --accent-color: #4CAF50; /* Green */
-    --error-color: #f44336;  /* Red */
-    --font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    /* Palette màu sắc tươi sáng và hiện đại */
+    --primary-blue: #4A90E2;
+    --primary-blue-dark: #357ABD;
+    --secondary-green: #7ED321;
+    --accent-orange: #F5A623;
+    --accent-pink: #E94B8C;
+    
+    /* THAY ĐỔI: Chuyển sang nền sáng */
+    --bg-light: #f4f7f6; /* Nền body mới */
+    --bg-white: #FFFFFF;
+    --bg-card: #FFFFFF; /* Nền của các container */
+    
+    --text-dark: #2C3E50;
+    --text-light: #6C757D;
+    --text-white: #FFFFFF;
+    --border-light: #E9ECEF;
+    --shadow: 0 4px 15px rgba(0, 0, 0, 0.08); /* Shadow nhẹ hơn */
+    --shadow-hover: 0 8px 25px rgba(74, 144, 226, 0.15);
+    --gradient-primary: linear-gradient(135deg, #4A90E2 0%, #357ABD 100%);
+    --gradient-success: linear-gradient(135deg, #7ED321 0%, #68B816 100%);
+    --gradient-warning: linear-gradient(135deg, #F5A623 0%, #E09612 100%);
+    --border-radius: 12px;
+    --font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
+
+/* Import Google Fonts */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 
 body {
     font-family: var(--font-family);
-    background-color: var(--bg-dark);
-    color: var(--text-primary);
+    /* THAY ĐỔI: Sử dụng nền sáng */
+    background: var(--bg-light); 
+    min-height: 100vh;
     margin: 0;
-    padding-top: 60px; /* Khoảng trống cho header cố định */
+    padding-top: 80px; /* Giữ khoảng cách cho header */
+    color: var(--text-dark);
+    line-height: 1.6;
 }
 
 .container {
-    background-color: var(--bg-medium);
-    padding: 30px 40px;
-    border-radius: 12px;
-    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.5);
+    background: var(--bg-card);
+    padding: 40px;
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow);
     width: 100%;
-    max-width: 400px;
-    text-align: center;
-    border: 1px solid var(--bg-light);
+    max-width: 450px;
     margin: 40px auto;
+    border: 1px solid var(--border-light);
+    position: relative;
+    overflow: hidden;
+}
+
+.container::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: var(--gradient-primary);
 }
 
 h1, h2 {
     margin-top: 0;
-    color: white;
+    color: var(--text-dark);
+    font-weight: 600;
+    text-align: center;
+    margin-bottom: 30px;
+}
+
+h1 {
+    font-size: 2rem;
+    background: var(--gradient-primary);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
 }
 
 .form-group {
-    margin-bottom: 20px;
-    text-align: left;
+    margin-bottom: 25px;
 }
 
 .form-group label {
     display: block;
     margin-bottom: 8px;
     font-size: 14px;
-    color: var(--text-secondary);
+    font-weight: 500;
+    color: var(--text-dark);
 }
 
-.form-group input {
+.form-group input, .form-group select {
     width: 100%;
-    padding: 12px;
-    background-color: var(--bg-light);
-    border: 1px solid #555;
-    border-radius: 6px;
-    color: var(--text-primary);
+    padding: 15px 18px;
+    background-color: var(--bg-light); /* Nền input sáng */
+    border: 2px solid var(--border-light);
+    border-radius: 10px;
+    color: var(--text-dark);
     font-size: 16px;
     box-sizing: border-box;
+    transition: all 0.3s ease;
+    font-family: var(--font-family);
+}
+
+.form-group input:focus, .form-group select:focus {
+    outline: none;
+    border-color: var(--primary-blue);
+    box-shadow: 0 0 0 3px rgba(74, 144, 226, 0.1);
+    transform: translateY(-2px);
 }
 
 .btn {
     display: inline-block;
     width: 100%;
-    padding: 15px;
-    font-size: 18px;
-    font-weight: bold;
-    color: white;
-    background-color: var(--accent-color);
+    padding: 16px 24px;
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text-white);
+    background: var(--gradient-primary);
     border: none;
-    border-radius: 6px;
+    border-radius: 10px;
     cursor: pointer;
     text-decoration: none;
-    transition: background-color 0.2s ease;
+    transition: all 0.3s ease;
     box-sizing: border-box;
+    text-align: center;
+    box-shadow: var(--shadow);
+    position: relative;
+    overflow: hidden;
+}
+
+.btn::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+    transition: left 0.5s;
+}
+
+.btn:hover::before {
+    left: 100%;
 }
 
 .btn:hover {
-    background-color: #45a049;
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-hover);
+}
+
+.btn-secondary {
+    background: var(--gradient-success);
+    margin-top: 10px;
 }
 
 .form-link {
-    margin-top: 20px;
+    margin-top: 25px;
     font-size: 14px;
+    text-align: center;
+    color: var(--text-light);
 }
 
 .form-link a {
-    color: var(--accent-color);
+    color: var(--primary-blue);
     text-decoration: none;
+    font-weight: 500;
+    transition: color 0.3s ease;
+}
+
+.form-link a:hover {
+    color: var(--primary-blue-dark);
 }
 
 .error-message {
-    color: var(--error-color);
-    background-color: rgba(244, 67, 54, 0.15);
-    padding: 10px;
-    border-radius: 6px;
+    color: #E74C3C;
+    background: linear-gradient(135deg, rgba(231, 76, 60, 0.1), rgba(231, 76, 60, 0.05));
+    padding: 15px 18px;
+    border-radius: 10px;
     margin-top: 20px;
-    border: 1px solid var(--error-color);
+    border: 1px solid rgba(231, 76, 60, 0.2);
+    border-left: 4px solid #E74C3C;
+    font-weight: 500;
 }
 
 .success-message {
-    color: #4CAF50;
-    background-color: rgba(76, 175, 80, 0.15);
-    padding: 10px;
-    border-radius: 6px;
+    color: var(--secondary-green);
+    background: linear-gradient(135deg, rgba(126, 211, 33, 0.1), rgba(126, 211, 33, 0.05));
+    padding: 15px 18px;
+    border-radius: 10px;
     margin-bottom: 20px;
-    border: 1px solid #4CAF50;
+    border: 1px solid rgba(126, 211, 33, 0.2);
+    border-left: 4px solid var(--secondary-green);
+    font-weight: 500;
 }
 
 /* --- Lobby Styles --- */
 .lobby-container {
-    max-width: 500px;
-    display: flex;
-    flex-direction: column;
+    max-width: 800px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
     gap: 30px;
+    margin: 40px auto;
+    padding: 0 20px;
 }
 
 .lobby-panel {
-    background-color: var(--bg-light);
-    padding: 25px;
-    border-radius: 8px;
+    background: var(--bg-card);
+    padding: 30px;
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow);
+    border: 1px solid var(--border-light);
+    position: relative;
+    overflow: hidden;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.lobby-panel::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: var(--gradient-primary);
+}
+
+.lobby-panel:hover {
+    transform: translateY(-5px);
+    box-shadow: var(--shadow-hover);
+}
+
+.lobby-panel.join-game::before {
+    background: var(--gradient-success);
 }
 
 .lobby-panel h2 {
     margin-top: 0;
-    border-bottom: 1px solid #555;
-    padding-bottom: 15px;
-    margin-bottom: 20px;
+    margin-bottom: 15px;
+    font-size: 1.4rem;
+    color: var(--text-dark);
+}
+
+.lobby-panel p {
+    color: var(--text-light);
+    margin-bottom: 25px;
+    line-height: 1.6;
 }
 
 .join-form {
     display: flex;
-    gap: 10px;
+    gap: 15px;
+    align-items: end;
 }
-.join-form input[type="text"] { flex-grow: 1; }
-.join-form .btn { width: auto; padding: 12px 20px; }
+
+.join-form .form-group {
+    flex-grow: 1;
+    margin: 0;
+}
+
+.join-form .btn {
+    width: auto;
+    padding: 15px 25px;
+    flex-shrink: 0;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .lobby-container {
+        grid-template-columns: 1fr;
+        max-width: 500px;
+    }
+    
+    .join-form {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .join-form .btn {
+        width: 100%;
+        margin-top: 10px;
+    }
+    
+    .container {
+        margin: 20px;
+        padding: 30px;
+    }
+}
