@@ -26,27 +26,35 @@ public class JoinGameServlet extends HttpServlet {
             return;
         }
 
-        UserBEAN player2 = (UserBEAN) session.getAttribute("loggedInUser");
-        String player2Id = player2.getUid();
-        String player2DisplayName = player2.getUsername();
+        UserBEAN joiningPlayer = (UserBEAN) session.getAttribute("loggedInUser");
+        String joiningPlayerId = joiningPlayer.getUid();
+        String joiningPlayerDisplayName = joiningPlayer.getUsername();
 
         try {
             DocumentSnapshot match = FirebaseService.getMatch(gameId);
-            if (match != null && match.get("player2") == null) {
-                // Kiểm tra xem người chơi có đang cố tham gia lại ván cờ của chính mình không
+
+            // --- THAY ĐỔI QUAN TRỌNG Ở ĐÂY ---
+            // Cách kiểm tra đúng: Phòng phải tồn tại VÀ đang ở trạng thái chờ.
+            if (match != null && "WAITING".equals(match.getString("status"))) {
+                
+                // Vẫn giữ lại logic kiểm tra người chơi tự tham gia lại phòng của mình
                 Map<String, Object> player1Data = (Map<String, Object>) match.get("player1");
-                if (player1Data != null && player1Data.get("uid").equals(player2Id)) {
-                    // Cho phép người chơi 1 mở lại ván cờ họ đã tạo
+                Map<String, Object> player2Data = (Map<String, Object>) match.get("player2");
+
+                if ((player1Data != null && player1Data.get("uid").equals(joiningPlayerId)) ||
+                    (player2Data != null && player2Data.get("uid").equals(joiningPlayerId))) {
+                    // Cho phép người chơi mở lại ván cờ họ đã tạo
                     response.sendRedirect(request.getContextPath() + "/game.jsp?gameId=" + gameId);
                     return;
                 }
 
-                // Phòng hợp lệ và còn trống
-                FirebaseService.joinMatch(gameId, player2Id, player2DisplayName);
+                // Phòng hợp lệ và còn trống, gọi hàm joinMatch
+                FirebaseService.joinMatch(gameId, joiningPlayerId, joiningPlayerDisplayName);
                 response.sendRedirect(request.getContextPath() + "/game.jsp?gameId=" + gameId);
+
             } else {
-                // Phòng không tồn tại hoặc đã đủ người
-                String error = (match == null) ? "Mã phòng không hợp lệ." : "Phòng đã đủ 2 người chơi.";
+                // Phòng không tồn tại hoặc không còn ở trạng thái chờ (đã bắt đầu hoặc đã kết thúc)
+                String error = (match == null) ? "Mã phòng không hợp lệ." : "Phòng đã đủ 2 người chơi hoặc trận đấu đã bắt đầu.";
                 request.setAttribute("errorMessage", error);
                 request.getRequestDispatcher("/index.jsp").forward(request, response);
             }

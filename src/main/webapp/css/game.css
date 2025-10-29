@@ -31,7 +31,7 @@
     --line-color: #a0522d;
     --board-bg: #f5e5c3;
     --board-wood: #8B4513;
-    --line-width: 2px;
+    --line-width: 1px;
     
     --marker-size: 10px; /* Độ dài của vạch dấu */
     --marker-offset: 5px;  /* Khoảng cách từ giao điểm */
@@ -89,24 +89,13 @@ body {
 
 .player-info-panel {
     display: flex;
-    justify-content: space-between;
+    justify-content: space-between; /* Đẩy các phần tử ra 2 bên */
     align-items: center;
-    gap: 15px;
-    background: var(--bg-card);
-    padding: 25px;
-    border-radius: var(--border-radius);
-    border: 1px solid var(--border-light);
-    box-shadow: var(--shadow);
-    position: relative;
-    overflow: hidden;
+    gap: 15px; /* Khoảng cách giữa các phần tử */
 }
 .player-details {
-    /* Cho phép phần tên co giãn để lấp đầy không gian */
-    flex-grow: 1; 
-    /* Căn giữa tên/elo */
-    display: flex;
-    flex-direction: column;
-    align-items: center;
+    flex-shrink: 0; 
+    text-align: left;
 }
 
 .player-name { font-size: 20px; font-weight: 600; }
@@ -135,7 +124,7 @@ body {
 /* ===== THAY ĐỔI LỚN: TOÀN BỘ PHẦN BÀN CỜ ĐƯỢC VIẾT LẠI ===== */
 
 .board-frame {
-    padding: 20px;
+    padding: 4px;
     background: var(--board-wood);
     border-radius: var(--border-radius);
     box-shadow: var(--shadow), inset 0 0 15px rgba(0,0,0,0.2);
@@ -154,23 +143,8 @@ body {
     /* Viền ngoài cùng của bàn cờ */
     border: var(--line-width) solid var(--line-color);
     padding: 0; /* Bỏ padding cũ, để các đường kẻ vẽ từ mép */
-    
-    transition: transform 0.6s ease-in-out;
-    transform-origin: center center;
 }
 
-/* Khi thêm class .flipped, bàn cờ sẽ bị lật 180 độ */
-#board.flipped {
-    transform: rotate(180deg);
-}
-
-/* Cần lật ngược các quân cờ để không bị ngược đầu */
-#board.flipped .piece {
-    transform: rotate(180deg);
-}
-
-
-/* ::before: Vẽ các đường kẻ ngang và dọc bên trong */
 #board::before {
     content: '';
     position: absolute;
@@ -178,30 +152,34 @@ body {
     width: 100%; height: 100%;
     pointer-events: none;
 
-    /* SỬA LỖI: Kết hợp tất cả các hình nền thành MỘT thuộc tính.
-      - Nền 1: Vẽ đường ngang (0deg) trên TOÀN BỘ bàn cờ.
-      - Nền 2: Vẽ đường dọc (90deg) CHỈ cho 4 hàng trên cùng.
-      - Nền 3: Vẽ đường dọc (90deg) CHỈ cho 4 hàng dưới cùng.
-    */
+    /* Vẽ 8 đường ngang (bỏ đường trên/dưới cùng đã có border) */
     background-image: 
-        /* 1. Đường ngang (toàn bộ 100% chiều cao) */
         repeating-linear-gradient(0deg, transparent 0, transparent calc(var(--square-size) - var(--line-width)), var(--line-color) calc(var(--square-size) - var(--line-width)), var(--line-color) var(--square-size)),
-        /* 2. Đường dọc (Nửa trên) */
-        repeating-linear-gradient(90deg, transparent 0, transparent calc(var(--square-size) - var(--line-width)), var(--line-color) calc(var(--square-size) - var(--line-width)), var(--line-color) var(--square-size)),
-        /* 3. Đường dọc (Nửa dưới) */
+        /* Vẽ 7 đường dọc BÊN TRONG */
         repeating-linear-gradient(90deg, transparent 0, transparent calc(var(--square-size) - var(--line-width)), var(--line-color) calc(var(--square-size) - var(--line-width)), var(--line-color) var(--square-size));
 
-    /* Kích thước tương ứng cho 3 hình nền trên */
+    /* Kích thước và Vị trí */
     background-size:
-        100% 100%, /* 1. Đường ngang: 100% chiều rộng, 100% chiều cao */
-        100% calc(var(--square-size) * 4), /* 2. Đường dọc: cao 4 ô (hàng 0-3) */
-        100% calc(var(--square-size) * 4); /* 3. Đường dọc: cao 4 ô (hàng 5-8) */
+        100% 100%, /* Lưới ngang: toàn bộ bàn cờ */
+        calc(var(--square-size) * 8) 100%; /* Lưới dọc: chỉ vẽ 7 đường bên trong */
         
-    /* Vị trí tương ứng cho 3 hình nền trên */
     background-position:
-        0 0, /* 1. Đường ngang: Bắt đầu từ 0,0 */
-        0 0, /* 2. Đường dọc trên: Bắt đầu từ 0,0 */
-        0 calc(var(--square-size) * 5); /* 3. Đường dọc dưới: Bắt đầu từ hàng thứ 5 (sau sông) */
+        0 0,
+        var(--square-size) 0; /* Bắt đầu vẽ đường dọc từ ô thứ 2 */
+        
+    /* Xóa các đường dọc ở Sông */
+    -webkit-mask: linear-gradient(0deg, 
+        white calc(var(--square-size) * 4), 
+        transparent calc(var(--square-size) * 4), 
+        transparent calc(var(--square-size) * 5), 
+        white calc(var(--square-size) * 5)
+    );
+    mask: linear-gradient(0deg, 
+        white calc(var(--square-size) * 4), 
+        transparent calc(var(--square-size) * 4), 
+        transparent calc(var(--square-size) * 5), 
+        white calc(var(--square-size) * 5)
+    );
 }
 
 /* ::after: Vẽ cung, sông, và các mốc */
@@ -230,6 +208,8 @@ body {
         /* Chữ Sông */
         var(--river-text-black),
         var(--river-text-red),
+        
+        linear-gradient(var(--line-color), var(--line-color)),
 
         /* --- VẠCH DẤU PHÁO (4 vị trí * 4 góc * 2 vạch) --- */
         /* Pháo (1, 2) */
@@ -288,6 +268,8 @@ body {
         /* Sông */
         calc(var(--square-size) * 4) var(--square-size), 
         calc(var(--square-size) * 4) var(--square-size),
+        
+         100% var(--line-width),
 
         /* --- VẠCH DẤU PHÁO (Kích thước) --- */
         /* Pháo (1, 2) */
@@ -348,6 +330,8 @@ body {
         /* Sông */
         0 calc(var(--square-size) * 4), 
         calc(var(--square-size) * 4) calc(var(--square-size) * 4),
+        
+        0 calc(var(--square-size) * 4),
 
         /* --- VẠCH DẤU PHÁO (Vị trí) --- */
         /* Pháo (1, 2) - [H, V] */
@@ -431,7 +415,6 @@ body {
     border: 2px solid rgba(0, 0, 0, 0.2);
     box-shadow: inset 0 -2px 3px rgba(0,0,0,0.3), inset 0 2px 3px rgba(255,255,255,0.4), 0 5px 8px rgba(0,0,0,0.5);
     text-shadow: 1px 1px 0px rgba(255,255,255,0.2), -1px -1px 0px rgba(0,0,0,0.3);
-    transition: transform 0.6s ease-in-out;
 }
 .piece:hover {
     transform: translateY(-3px);
@@ -499,17 +482,14 @@ body {
 #decline-draw-btn { background: #6c757d; }
 
 .captured-pieces {
-    /*position: absolute; left: 15px; display: flex; align-items: center;
-    height: 100%; flex-wrap: wrap; gap: 3px; max-width: calc(100% - 220px); */
+   /* Khu vực quân bị ăn sẽ co giãn để lấp đầy không gian ở giữa */
+    flex-grow: 1; 
     display: flex;
+    justify-content: center; /* Căn các quân cờ ra giữa */
     align-items: center;
-    flex-wrap: wrap;
+    flex-wrap: wrap; /* Cho phép xuống dòng nếu không đủ chỗ */
     gap: 3px;
-    
-    /* Đặt chiều rộng cơ sở và cho phép co lại nếu cần */
-    flex-basis: 30%; /* Chiếm khoảng 30% chiều rộng panel */
-    flex-shrink: 1; /* Cho phép co lại nếu không đủ chỗ */
-    justify-content: flex-start; /* Căn các quân cờ về bên trái */
+    min-width: 0; /* Cho phép co lại nếu cần */
 }
 .captured-pieces img { width: 28px; height: 28px; opacity: 0.7; }
 /*.player-info-panel.top .captured-pieces { right: 15px; left: auto; justify-content: flex-end; }*/
@@ -539,20 +519,7 @@ body {
 }
 .modal-button:hover { transform: translateY(-2px); box-shadow: var(--shadow-hover); }
 
-.highlight {
-  background-color: rgba(255, 230, 0, 0.4);
-  border-radius: 50%;
-}
-
-
 /* --- Responsive Design --- */
-
-@media (max-width: 768px) {
-  :root {
-    --square-size: 45px;
-  }
-}
-
 @media (max-width: 1200px) {
     .game-container { grid-template-columns: 1fr; max-width: 800px; }
     .sidebar { order: -1; }

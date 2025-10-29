@@ -133,70 +133,55 @@ document.addEventListener('DOMContentLoaded', function() {
 	var pieceToChar = { "KingBEAN": "將", "AdvisorBEAN": "士", "BishopBEAN": "象", "KnightBEAN": "馬", "RookBEAN": "車", "CannonBEAN": "炮", "PawnBEAN": "卒" };
 	var redPieceToChar = { "KingBEAN": "帥", "AdvisorBEAN": "仕", "BishopBEAN": "相", "KnightBEAN": "傌", "RookBEAN": "俥", "CannonBEAN": "砲", "PawnBEAN": "兵" };
 
+	// Hàm renderBoardFromState mới
 	function renderBoardFromState(boardState) {
-	    boardElement.innerHTML = ''; // Xóa bàn cũ
+	    boardElement.innerHTML = ''; // Xóa sạch các ô và quân cờ cũ
 
 	    var squareSize = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--square-size'));
 
-	    // 🔹 Vẽ 90 ô vuông (9 cột × 10 hàng)
+	    // VÒNG LẶP 1: TẠO RA TẤT CẢ 90 Ô .square TRỐNG
 	    for (var y = 0; y < 10; y++) {
 	        for (var x = 0; x < 9; x++) {
 	            var square = document.createElement('div');
 	            square.className = 'square';
-
-	            // 👉 Nếu người chơi là ĐEN, đảo toạ độ để Đen ở dưới
-	            var displayX = (myColor === 'Black') ? 8 - x : x;
-	            var displayY = (myColor === 'Black') ? 9 - y : y;
-
 	            square.dataset.x = x;
 	            square.dataset.y = y;
-	            square.style.left = (displayX * squareSize) + 'px';
-	            square.style.top = (displayY * squareSize) + 'px';
-
+	            
+	            // Định vị tất cả các ô
+	            // Hàm updateSquarePositions sẽ xử lý việc cập nhật khi resize
+	            square.style.left = (x * squareSize) + 'px';
+	            square.style.top = (y * squareSize) + 'px';
+	            
 	            boardElement.appendChild(square);
 	        }
 	    }
 
-	    // 🔹 Vẽ quân cờ
+	    // VÒNG LẶP 2: ĐẶT CÁC QUÂN CỜ VÀO CÁC Ô .square TƯƠNG ỨNG
 	    for (var key in boardState) {
-	        if (!boardState.hasOwnProperty(key)) continue;
+	        if (boardState.hasOwnProperty(key)) {
+	            var pos = key.split(',');
+	            var y = parseInt(pos[0]);
+	            var x = parseInt(pos[1]);
 
-	        var pos = key.split(',');
-	        var y = parseInt(pos[0]);
-	        var x = parseInt(pos[1]);
-	        var parts = boardState[key].split('_');
-	        var pieceType = parts[0];
-	        var color = parts[1];
+	            // Tìm ô .square đã được tạo ở trên
+	            var selector = '.square[data-x="' + x + '"][data-y="' + y + '"]';
+	            var targetSquare = boardElement.querySelector(selector);
 
-	        // 👉 Tọa độ hiển thị cũng phải đảo tương tự
-	        var displayX = (myColor === 'Black') ? 8 - x : x;
-	        var displayY = (myColor === 'Black') ? 9 - y : y;
+	            if (targetSquare) {
+	                var parts = boardState[key].split('_');
+	                var pieceType = parts[0];
+	                var color = parts[1];
 
-	        var squareSelector = '.square[data-x="' + x + '"][data-y="' + y + '"]';
-	        var targetSquare = boardElement.querySelector(squareSelector);
-	        if (!targetSquare) continue;
-
-	        var pieceEl = document.createElement('div');
-	        pieceEl.className = 'piece ' + color.toLowerCase();
-	        pieceEl.textContent = (color === 'Red') ? redPieceToChar[pieceType] : pieceToChar[pieceType];
-
-	        // 🔹 Nếu bạn là ĐEN, lật chữ quân cờ cho đúng hướng
-	        if (myColor === 'Black') {
-	            pieceEl.style.transform = 'rotate(180deg)';
+	                var pieceElement = document.createElement('div');
+	                pieceElement.className = 'piece ' + color.toLowerCase();
+	                pieceElement.textContent = (color === 'Red') ? redPieceToChar[pieceType] : pieceToChar[pieceType];
+	                
+	                // Thêm quân cờ vào ô
+	                targetSquare.appendChild(pieceElement);
+	            }
 	        }
-
-	        targetSquare.appendChild(pieceEl);
-	    }
-
-	    // 🔹 Nếu bạn là ĐEN, lật toàn bộ bàn
-	    if (myColor === 'Black') {
-	        boardElement.style.transform = 'rotate(180deg)';
-	    } else {
-	        boardElement.style.transform = 'rotate(0deg)';
 	    }
 	}
-
-
 
 	function processBoardChanges(newBoardState) {
         if (!previousBoardState) {
@@ -503,90 +488,50 @@ document.addEventListener('DOMContentLoaded', function() {
         window.addEventListener('resize', debounce(updateSquarePositions, 100));
     }
 
-	function listenToMatchUpdates() {
-	    var matchDocRef = db.collection('matches').doc(gameId);
-	    matchDocRef.onSnapshot(function (doc) {
-	        console.log("✅ 4. Match listener triggered. UI will be updated.");
-	        if (!doc.exists) {
-	            statusMessageEl.textContent = "Lỗi: Ván cờ này không còn tồn tại.";
-	            return;
-	        }
+    function listenToMatchUpdates() {
+        var matchDocRef = db.collection('matches').doc(gameId);
+        matchDocRef.onSnapshot(function(doc) {
+            console.log("✅ 4. Match listener triggered. UI will be updated.");
+            if (!doc.exists) {
+                statusMessageEl.textContent = "Lỗi: Ván cờ này không còn tồn tại.";
+                return;
+            }
+            var matchData = doc.data();
+            currentTurnFromServer = matchData.currentTurn;
+            
+            if (matchData.boardState) {
+                renderBoardFromState(matchData.boardState);
+                processBoardChanges(matchData.boardState);
+            }
+            
+            var p1 = matchData.player1;
+            var p2 = matchData.player2;
+            document.getElementById('player-red-name').textContent = p1 ? p1.displayName : "Chờ người chơi...";
+            document.getElementById('player-black-name').textContent = p2 ? p2.displayName : "Chờ người chơi...";
+            document.getElementById('player-red-elo').textContent = (p1 && p1.elo) ? 'ELO: ' + p1.elo : "";
+            document.getElementById('player-black-elo').textContent = (p2 && p2.elo) ? 'ELO: ' + p2.elo : "";
 
-	        var matchData = doc.data();
-
-	        // ⚠️ LỖI NHỎ CỦA BẠN: bạn dùng "data" thay vì "matchData"
-	        // ✅ Sửa lại đúng:
-	        let currentColor = null;
-	        if (matchData.player1 && matchData.player1.uid === currentUserId) {
-	            currentColor = "red";
-	        } else if (matchData.player2 && matchData.player2.uid === currentUserId) {
-	            currentColor = "black";
-	        }
-
-	        // 🎯 Xoay bàn cờ theo màu của người chơi
-	        const boardEl = document.getElementById("board");
-	        if (currentColor === "black") {
-	            boardEl.style.transform = "rotate(180deg)";
-	            boardEl.querySelectorAll(".piece").forEach(piece => {
-	                piece.style.transform = "rotate(180deg)";
-	            });
-	        } else {
-	            boardEl.style.transform = "rotate(0deg)";
-	            boardEl.querySelectorAll(".piece").forEach(piece => {
-	                piece.style.transform = "rotate(0deg)";
-	            });
-	        }
-
-	        // --- Cập nhật trạng thái bàn cờ ---
-	        currentTurnFromServer = matchData.currentTurn;
-	        if (matchData.boardState) {
-	            renderBoardFromState(matchData.boardState);
-	            processBoardChanges(matchData.boardState);
-	        }
-
-	        // --- Cập nhật tên người chơi và ELO ---
-	        var p1 = matchData.player1;
-	        var p2 = matchData.player2;
-	        document.getElementById('player-red-name').textContent = p1 ? p1.displayName : "Chờ người chơi...";
-	        document.getElementById('player-black-name').textContent = p2 ? p2.displayName : "Chờ người chơi...";
-	        document.getElementById('player-red-elo').textContent = (p1 && p1.elo) ? 'ELO: ' + p1.elo : "";
-	        document.getElementById('player-black-elo').textContent = (p2 && p2.elo) ? 'ELO: ' + p2.elo : "";
-
-	        // --- Xác định bạn là ai ---
-	        if (p1 && p1.uid === currentUserId) {
-	            myColor = "Red";
-	            isSpectator = false;
-	        } else if (p2 && p2.uid === currentUserId) {
-	            myColor = "Black";
-	            isSpectator = false;
-	        } else {
-	            myColor = null;
-	            isSpectator = true;
-	        }
-
-	        // --- Cập nhật thông báo trạng thái ---
-	        if (matchData.status === 'IN_PROGRESS') {
-	            turnColorEl.textContent = matchData.currentTurn;
-	            turnColorEl.className = matchData.currentTurn.toLowerCase();
-	            if (!isSpectator) {
-	                statusMessageEl.textContent =
-	                    (matchData.currentTurn === myColor)
-	                        ? "Đến lượt bạn!"
-	                        : "Đang chờ đối thủ...";
-	            } else {
-	                statusMessageEl.textContent = 'Đang xem: Lượt của quân ' + matchData.currentTurn;
-	            }
-	        } else if (matchData.status === 'WAITING') {
-	            statusMessageEl.textContent = 'Đang chờ người chơi khác... Mã phòng: ' + gameId;
-	        }
-
-	        updateAndStartTimer(matchData);
-	    },
-	    function (error) {
-	        console.error("❌ Firestore Error on Match listener: ", error);
-	    });
-	}
-
+            if (p1 && p1.uid === currentUserId) { myColor = "Red"; isSpectator = false; }
+            else if (p2 && p2.uid === currentUserId) { myColor = "Black"; isSpectator = false; }
+            else { myColor = null; isSpectator = true; }
+            
+            if (matchData.status === 'IN_PROGRESS') {
+                turnColorEl.textContent = matchData.currentTurn;
+                turnColorEl.className = matchData.currentTurn.toLowerCase();
+                if (!isSpectator) {
+                    statusMessageEl.textContent = (matchData.currentTurn === myColor) ? "Đến lượt bạn!" : "Đang chờ đối thủ...";
+                } else {
+                    statusMessageEl.textContent = 'Đang xem: Lượt của quân ' + matchData.currentTurn;
+                }
+            } else if (matchData.status === 'WAITING') {
+                statusMessageEl.textContent = 'Đang chờ người chơi khác... Mã phòng: ' + gameId;
+            }
+            
+            updateAndStartTimer(matchData);
+        }, function(error) { 
+            console.error("❌ Firestore Error on Match listener: ", error);
+        });
+    }
 
     // --- PHẦN 4: KHỞI CHẠY ---
     initializeGame();

@@ -46,6 +46,9 @@ public class FirebaseService {
         Map<String, Object> matchData = new HashMap<>();
 
         // --- CÁC TRƯỜNG THÔNG TIN CƠ BẢN CỦA TRẬN ĐẤU ---
+        
+        matchData.put("creatorId", player1Id); 
+        
         matchData.put("status", "WAITING"); // Trạng thái ban đầu luôn là "Đang chờ".
         matchData.put("currentTurn", "Red"); // Theo luật, quân Đỏ luôn đi trước.
         matchData.put("boardState", boardToMap(new Board())); // Tạo bàn cờ ban đầu.
@@ -84,6 +87,7 @@ public class FirebaseService {
         // Bước 5: Trả về ID của document vừa tạo để Servlet có thể chuyển hướng người dùng.
         return docRef.getId();
     }
+    
     
     private static Map<String, String> boardToMap(Board board) {
         Map<String, String> boardState = new HashMap<>();
@@ -222,23 +226,45 @@ public class FirebaseService {
     /**
      * Cho người chơi 2 tham gia trận đấu.
      */
-    public static void joinMatch(String matchId, String player2Id, String player2DisplayName)
+    public static void joinMatch(String matchId, String joiningPlayerId, String joiningPlayerDisplayName) 
             throws ExecutionException, InterruptedException {
-        DocumentSnapshot userDoc = db.collection("users").document(player2Id).get().get();
-        long player2Elo = userDoc.exists() ? userDoc.getLong("elo") : 1000;
-
-        Map<String, Object> player2 = new HashMap<>();
-        player2.put("uid", player2Id);
-        player2.put("displayName", player2DisplayName);
-        player2.put("elo", player2Elo);
+        
+        // Bước 1: Lấy thông tin ELO của người chơi đang tham gia
+        DocumentSnapshot userDoc = db.collection("users").document(joiningPlayerId).get().get();
+        long joiningPlayerElo = userDoc.exists() ? userDoc.getLong("elo") : 1000;
+        
+        // Tạo Map chứa thông tin của người chơi
+        Map<String, Object> joiningPlayerInfo = new HashMap<>();
+        joiningPlayerInfo.put("uid", joiningPlayerId);
+        joiningPlayerInfo.put("displayName", joiningPlayerDisplayName);
+        joiningPlayerInfo.put("elo", joiningPlayerElo);
+        
+        // Bước 2: Lấy trạng thái hiện tại của trận đấu để xác định vị trí trống
+        DocumentReference matchRef = db.collection("matches").document(matchId);
+        DocumentSnapshot matchDoc = matchRef.get().get();
 
         Map<String, Object> updates = new HashMap<>();
-        updates.put("player2", player2);
-        updates.put("status", "IN_PROGRESS");
-        updates.put("lastMoveTimestamp", com.google.cloud.Timestamp.now());
-        updates.put("participantIds", FieldValue.arrayUnion(player2Id));
-
-        db.collection("matches").document(matchId).update(updates).get();
+        
+        // --- LOGIC QUAN TRỌNG ---
+        // Kiểm tra xem player1 có trống không. Nếu có, điền vào đó.
+        if (matchDoc.get("player1") == null) {
+            updates.put("player1", joiningPlayerInfo);
+        } 
+        // Nếu không, kiểm tra player2. Nếu có, điền vào đó.
+        else if (matchDoc.get("player2") == null) {
+            updates.put("player2", joiningPlayerInfo);
+        } else {
+            // Trường hợp phòng đã đầy, không làm gì cả (Servlet đã kiểm tra nhưng đây là lớp phòng thủ)
+            return; 
+        }
+        
+        // Bước 3: Cập nhật các trường thông tin khác
+        updates.put("status", "IN_PROGRESS"); // Trận đấu bắt đầu!
+        updates.put("lastMoveTimestamp", com.google.cloud.Timestamp.now()); // Reset đồng hồ cho nước đi đầu tiên
+        updates.put("participantIds", FieldValue.arrayUnion(joiningPlayerId)); // Thêm ID vào mảng người tham gia
+        
+        // Ghi tất cả cập nhật lên Firestore
+        matchRef.update(updates).get();
     }
     
     public static List<MatchBEAN> getMatchHistory(String userId) throws ExecutionException, InterruptedException {
