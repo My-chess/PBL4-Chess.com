@@ -3,64 +3,49 @@ package Controller;
 import com.google.auth.oauth2.GoogleCredentials;
 import com.google.firebase.FirebaseApp;
 import com.google.firebase.FirebaseOptions;
-import jakarta.servlet.ServletContext;
 import jakarta.servlet.ServletContextEvent;
 import jakarta.servlet.ServletContextListener;
 import jakarta.servlet.annotation.WebListener;
 
-import java.io.File;
-import java.io.FileInputStream;
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 
+/**
+ * Lớp cấu hình Firebase, được thiết kế để chạy khi server khởi động.
+ * Phiên bản này được tối ưu cho môi trường production (như Render, Heroku)
+ * bằng cách đọc thông tin xác thực từ biến môi trường của hệ thống.
+ */
 @WebListener
 public class FirebaseConfig implements ServletContextListener {
 
-    private static final String CREDENTIALS_FILE_NAME = "serviceAccountKey.json";
-
+    /**
+     * Phương thức này được tự động gọi một lần duy nhất khi ứng dụng web bắt đầu chạy.
+     */
     @Override
     public void contextInitialized(ServletContextEvent sce) {
-        System.out.println("FirebaseConfig: Attempting to initialize Firebase Admin SDK...");
-
+        System.out.println("FirebaseConfig: Initializing Firebase Admin SDK from Environment Variable...");
+        
         try {
-            if (FirebaseApp.getApps().isEmpty()) {
+            // Chỉ khởi tạo nếu chưa có ứng dụng Firebase nào chạy
+            if (FirebaseApp.getApps().isEmpty()) { 
                 
-                InputStream serviceAccountStream = null;
-                
-                // === BẮT ĐẦU PHẦN TỐI ƯU HÓA VỚI BIẾN MÔI TRƯỜNG ===
+                // 1. Đọc nội dung key từ biến môi trường của hệ thống (Render sẽ cung cấp biến này)
+                // System.getenv() là cách chuẩn của Java để đọc environment variables.
+                String firebaseCredentialsJson = System.getenv("GOOGLE_CREDENTIALS_JSON");
 
-                // 1. Ưu tiên đọc đường dẫn từ biến môi trường "GOOGLE_CREDENTIALS_PATH"
-                String credentialsPathFromEnv = System.getenv("GOOGLE_CREDENTIALS_PATH");
-
-                if (credentialsPathFromEnv != null && !credentialsPathFromEnv.isEmpty()) {
-                    System.out.println("Found GOOGLE_CREDENTIALS_PATH environment variable. Path: " + credentialsPathFromEnv);
-                    File credentialsFile = new File(credentialsPathFromEnv);
-                    if (credentialsFile.exists()) {
-                        // Môi trường Production (Render) hoặc Local được cấu hình chuyên nghiệp
-                        serviceAccountStream = new FileInputStream(credentialsFile);
-                        System.out.println("Successfully loaded credentials from environment variable path.");
-                    } else {
-                        System.err.println("WARNING: Environment variable GOOGLE_CREDENTIALS_PATH was set, but file not found at: " + credentialsPathFromEnv);
-                    }
+                // 2. Kiểm tra xem biến môi trường có tồn tại không. Đây là bước gỡ lỗi quan trọng.
+                if (firebaseCredentialsJson == null || firebaseCredentialsJson.isEmpty()) {
+                    System.err.println("FATAL ERROR: Environment variable GOOGLE_CREDENTIALS_JSON is not set.");
+                    throw new RuntimeException("Environment variable GOOGLE_CREDENTIALS_JSON is not set.");
                 }
+                System.out.println("Successfully loaded credentials from environment variable.");
+
+                // 3. Chuyển chuỗi JSON (dạng String) thành một InputStream mà Google Credentials có thể đọc được
+                InputStream serviceAccountStream = new ByteArrayInputStream(firebaseCredentialsJson.getBytes(StandardCharsets.UTF_8));
                 
-                // 2. Nếu không có biến môi trường hoặc file không tồn tại, quay về phương án dự phòng
-                if (serviceAccountStream == null) {
-                    System.out.println("Falling back to reading credentials from /WEB-INF/ (for simple local development).");
-                    
-                    ServletContext context = sce.getServletContext();
-                    String localResourcePath = "/WEB-INF/" + CREDENTIALS_FILE_NAME;
-                    serviceAccountStream = context.getResourceAsStream(localResourcePath);
-
-                    if (serviceAccountStream == null) {
-                        System.err.println("CRITICAL ERROR: Could not find credentials file via environment variable or in /WEB-INF/ directory.");
-                        throw new IOException("Cannot find " + CREDENTIALS_FILE_NAME + ".");
-                    }
-                    System.out.println("Successfully loaded credentials from /WEB-INF/.");
-                }
-
-                // === KẾT THÚC PHẦN TỐI ƯU HÓA ===
-
+                // 4. Khởi tạo Firebase SDK
                 FirebaseOptions options = FirebaseOptions.builder()
                         .setCredentials(GoogleCredentials.fromStream(serviceAccountStream))
                         .build();
@@ -73,7 +58,9 @@ public class FirebaseConfig implements ServletContextListener {
             throw new RuntimeException("Firebase Admin SDK initialization failed.", e);
         }
     }
-
+    
     @Override
-    public void contextDestroyed(ServletContextEvent sce) { }
+    public void contextDestroyed(ServletContextEvent sce) {
+        // Có thể thêm logic dọn dẹp ở đây nếu cần
+    }
 }
