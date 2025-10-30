@@ -19,7 +19,7 @@
         <dependency>
             <groupId>com.google.firebase</groupId>
             <artifactId>firebase-admin</artifactId>
-            <version>9.1.1</version> <!-- Hoặc phiên bản mới hơn -->
+            <version>9.1.1</version>
         </dependency>
 
         <!-- Thư viện Gson để xử lý JSON -->
@@ -29,15 +29,23 @@
             <version>2.9.0</version>
         </dependency>
         
-        <!-- === CÁC THƯ VIỆN ĐÃ ĐƯỢC TOMCAT CUNG CẤP SẴN === -->
-        
         <!-- Jakarta Servlet API -->
         <dependency>
             <groupId>jakarta.servlet</groupId>
             <artifactId>jakarta.servlet-api</artifactId>
             <version>5.0.0</version>
-            <scope>provided</scope> <!-- Quan trọng! -->
+            <scope>provided</scope>
         </dependency>
+        
+        <!-- === THÊM KHỐI CODE MỚI VÀO ĐÂY === -->
+        <!-- Jakarta WebSocket API -->
+        <dependency>
+            <groupId>jakarta.websocket</groupId>
+            <artifactId>jakarta.websocket-api</artifactId>
+            <version>2.0.0</version>
+            <scope>provided</scope>
+        </dependency>
+        <!-- ==================================== -->
 
         <!-- Jakarta Standard Tag Library (JSTL) API -->
         <dependency>
