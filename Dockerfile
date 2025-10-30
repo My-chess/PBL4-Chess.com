@@ -1,32 +1,36 @@
-# === THAY ĐỔI QUAN TRỌNG: Sử dụng Tomcat 10.1, hỗ trợ Jakarta Servlet 5.0 ===
+# --- Giai đoạn 1: Build ứng dụng với Maven ---
+# Sử dụng một image có sẵn Maven và JDK 11
+FROM maven:3.8-openjdk-11 AS build
+
+# Đặt thư mục làm việc
+WORKDIR /app
+
+# Sao chép file pom.xml vào trước để tận dụng cache của Docker
+COPY pom.xml .
+
+# Tải tất cả dependencies về trước
+RUN mvn dependency:go-offline
+
+# Sao chép toàn bộ mã nguồn còn lại
+COPY src ./src
+
+# Chạy lệnh build của Maven. Nó sẽ biên dịch code và đóng gói thành file .war
+# Lệnh 'package -DskipTests' sẽ bỏ qua việc chạy unit test để build nhanh hơn
+RUN mvn clean package -DskipTests
+
+# --- Giai đoạn 2: Chạy ứng dụng trên Tomcat ---
+# Sử dụng image Tomcat 10.1
 FROM tomcat:10.1-jdk11-openjdk
 
-# Đặt thư mục làm việc tạm thời để build code
-WORKDIR /build_app
-
-# Sao chép TOÀN BỘ dự án của bạn vào thư mục này
-COPY . .
-
-# Lệnh biên dịch - Giữ nguyên như cũ, bây giờ nó sẽ hoạt động vì
-# thư viện của Tomcat 10 đã chứa package "jakarta.servlet"
-RUN javac -d src/main/webapp/WEB-INF/classes -cp "/usr/local/tomcat/lib/*:src/main/webapp/WEB-INF/lib/*" $(find src/main/java -name "*.java")
-
-# --- Giai đoạn thiết lập để chạy server ---
-
-# Xóa các ứng dụng web mặc định của Tomcat để dọn dẹp
+# Dọn dẹp các ứng dụng mặc định
 RUN rm -rf /usr/local/tomcat/webapps/*
 
-# Di chuyển ứng dụng đã được biên dịch của bạn vào đúng vị trí (thư mục ROOT)
-RUN mv src/main/webapp /usr/local/tomcat/webapps/ROOT
+# Sao chép file .war đã được build từ giai đoạn 1 vào thư mục webapps của Tomcat
+# Maven sẽ tạo ra file .war trong thư mục /target
+COPY --from=build /app/target/cotuong-webapp.war /usr/local/tomcat/webapps/ROOT.war
 
-# (Tùy chọn) Dọn dẹp thư mục build tạm thời để giảm kích thước image
-RUN rm -rf /build_app
-
-# Chuyển về thư mục làm việc mặc định của Tomcat
-WORKDIR /usr/local/tomcat
-
-# Mở cổng 8080 mà Tomcat lắng nghe
+# Mở cổng 8080
 EXPOSE 8080
 
-# Lệnh để khởi động server Tomcat
+# Lệnh khởi động Tomcat
 CMD ["catalina.sh", "run"]
