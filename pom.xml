@@ -3,8 +3,8 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>com.yourcompany</groupId>
-    <artifactId>cotuong-webapp</artifactId>
+    <groupId>com.yourcompany.chess</groupId>
+    <artifactId>pbl4-chess-app</artifactId>
     <version>1.0.0</version>
     <packaging>war</packaging>
 
@@ -19,51 +19,69 @@
         <dependency>
             <groupId>com.google.firebase</groupId>
             <artifactId>firebase-admin</artifactId>
-            <version>9.1.1</version>
+            <version>9.2.0</version> <!-- Phiên bản mới, rất tốt -->
         </dependency>
 
-        <!-- Thư viện Gson để xử lý JSON -->
+        <!-- Google Gson để xử lý JSON -->
         <dependency>
             <groupId>com.google.code.gson</groupId>
             <artifactId>gson</artifactId>
-            <version>2.9.0</version>
+            <version>2.10.1</version> <!-- Phiên bản mới, rất tốt -->
         </dependency>
-        
-        <!-- Jakarta Servlet API -->
+
+        <!-- =================================================================== -->
+        <!-- CÁC THƯ VIỆN WEB APIs (Được cung cấp bởi Tomcat, không cần đóng gói) -->
+        <!-- =================================================================== -->
         <dependency>
             <groupId>jakarta.servlet</groupId>
             <artifactId>jakarta.servlet-api</artifactId>
             <version>5.0.0</version>
             <scope>provided</scope>
         </dependency>
-        
-        <!-- Jakarta WebSocket API -->
+        <dependency>
+            <groupId>jakarta.servlet.jsp</groupId>
+            <artifactId>jakarta.servlet.jsp-api</artifactId>
+            <version>3.1.0</version> <!-- Cập nhật phiên bản -->
+            <scope>provided</scope>
+        </dependency>
         <dependency>
             <groupId>jakarta.websocket</groupId>
             <artifactId>jakarta.websocket-api</artifactId>
-            <version>2.0.0</version>
+            <version>2.1.0</version> <!-- Cập nhật phiên bản -->
             <scope>provided</scope>
         </dependency>
 
-        <!-- Jakarta Standard Tags API (Chứa định nghĩa cho jakarta.tags.core) -->
+        <!-- =================================================================== -->
+        <!-- THƯ VIỆN JSTL (Cần thiết cho các thẻ JSP, cần được đóng gói)        -->
+        <!-- =================================================================== -->
+        
+        <!-- SỬA ĐỔI QUAN TRỌNG Ở ĐÂY -->
+        <!-- Định nghĩa các thẻ JSTL như <c:if>, <c:forEach> -->
         <dependency>
             <groupId>jakarta.tags</groupId>
             <artifactId>jakarta.tags-api</artifactId>
-            <version>2.0.0</version>
+            <version>3.0.0</version>
         </dependency>
         
-        <!-- Jakarta Standard Tag Library (JSTL) Implementation -->
+        <!-- Implementation của JSTL từ GlassFish -->
         <dependency>
             <groupId>org.glassfish.web</groupId>
             <artifactId>jakarta.servlet.jsp.jstl</artifactId>
-            <version>2.0.0</version>
+            <version>3.0.1</version>
         </dependency>
-
     </dependencies>
 
     <build>
-        <finalName>${project.artifactId}</finalName>
+        <!-- Đặt tên file war cuối cùng là ROOT.war, rất tiện lợi -->
+        <finalName>ROOT</finalName>
         <plugins>
+            <!-- Plugin để biên dịch code Java -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.11.0</version> <!-- Cập nhật phiên bản plugin -->
+            </plugin>
+            <!-- Plugin để đóng gói thành file .war -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-war-plugin</artifactId>
