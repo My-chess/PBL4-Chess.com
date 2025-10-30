@@ -37,7 +37,6 @@
             <scope>provided</scope>
         </dependency>
         
-        <!-- === THÊM KHỐI CODE MỚI VÀO ĐÂY === -->
         <!-- Jakarta WebSocket API -->
         <dependency>
             <groupId>jakarta.websocket</groupId>
@@ -45,12 +44,11 @@
             <version>2.0.0</version>
             <scope>provided</scope>
         </dependency>
-        <!-- ==================================== -->
 
-        <!-- Jakarta Standard Tag Library (JSTL) API -->
+        <!-- Jakarta Standard Tags API (Chứa định nghĩa cho jakarta.tags.core) -->
         <dependency>
-            <groupId>jakarta.servlet.jsp.jstl</groupId>
-            <artifactId>jakarta.servlet.jsp.jstl-api</artifactId>
+            <groupId>jakarta.tags</groupId>
+            <artifactId>jakarta.tags-api</artifactId>
             <version>2.0.0</version>
         </dependency>
         
