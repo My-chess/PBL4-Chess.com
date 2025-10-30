@@ -1,6 +1,8 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0"
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
+                             http://maven.apache.org/xsd/maven-4.0.0.xsd">
+
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>com.yourcompany.chess</groupId>
@@ -8,85 +10,112 @@
     <version>1.0.0</version>
     <packaging>war</packaging>
 
+    <name>PBL4 Chess App</name>
+    <description>Web-based Chess Application using JSP, WebSocket and Firebase</description>
+
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <maven.compiler.source>11</maven.compiler.source>
         <maven.compiler.target>11</maven.compiler.target>
+        <failOnMissingWebXml>false</failOnMissingWebXml>
     </properties>
 
     <dependencies>
-        <!-- Thư viện Firebase Admin SDK -->
+
+        <!-- =============================== -->
+        <!-- Firebase Admin SDK -->
+        <!-- =============================== -->
         <dependency>
             <groupId>com.google.firebase</groupId>
             <artifactId>firebase-admin</artifactId>
-            <version>9.2.0</version> <!-- Phiên bản mới, rất tốt -->
+            <version>9.2.0</version>
         </dependency>
 
-        <!-- Google Gson để xử lý JSON -->
+        <!-- JSON Parser -->
         <dependency>
             <groupId>com.google.code.gson</groupId>
             <artifactId>gson</artifactId>
-            <version>2.10.1</version> <!-- Phiên bản mới, rất tốt -->
+            <version>2.10.1</version>
         </dependency>
 
-        <!-- =================================================================== -->
-        <!-- CÁC THƯ VIỆN WEB APIs (Được cung cấp bởi Tomcat, không cần đóng gói) -->
-        <!-- =================================================================== -->
+        <!-- =============================== -->
+        <!-- Jakarta EE APIs (Provided by Tomcat) -->
+        <!-- =============================== -->
         <dependency>
             <groupId>jakarta.servlet</groupId>
             <artifactId>jakarta.servlet-api</artifactId>
             <version>5.0.0</version>
             <scope>provided</scope>
         </dependency>
+
         <dependency>
             <groupId>jakarta.servlet.jsp</groupId>
             <artifactId>jakarta.servlet.jsp-api</artifactId>
-            <version>3.1.0</version> <!-- Cập nhật phiên bản -->
-            <scope>provided</scope>
-        </dependency>
-        <dependency>
-            <groupId>jakarta.websocket</groupId>
-            <artifactId>jakarta.websocket-api</artifactId>
-            <version>2.1.0</version> <!-- Cập nhật phiên bản -->
+            <version>3.1.0</version>
             <scope>provided</scope>
         </dependency>
 
-        <!-- =================================================================== -->
-        <!-- THƯ VIỆN JSTL (Cần thiết cho các thẻ JSP, cần được đóng gói)        -->
-        <!-- =================================================================== -->
-        
-        <!-- SỬA ĐỔI QUAN TRỌNG Ở ĐÂY -->
-        <!-- Định nghĩa các thẻ JSTL như <c:if>, <c:forEach> -->
         <dependency>
-            <groupId>jakarta.tags</groupId>
-            <artifactId>jakarta.tags-api</artifactId>
-            <version>3.0.0</version>
+            <groupId>jakarta.websocket</groupId>
+            <artifactId>jakarta.websocket-api</artifactId>
+            <version>2.1.0</version>
+            <scope>provided</scope>
         </dependency>
-        
-        <!-- Implementation của JSTL từ GlassFish -->
+
+        <!-- =============================== -->
+        <!-- JSTL (Jakarta Tags) -->
+        <!-- =============================== -->
+        <!-- JSTL 3.0 implementation from GlassFish -->
         <dependency>
             <groupId>org.glassfish.web</groupId>
             <artifactId>jakarta.servlet.jsp.jstl</artifactId>
             <version>3.0.1</version>
         </dependency>
+
     </dependencies>
 
     <build>
-        <!-- Đặt tên file war cuối cùng là ROOT.war, rất tiện lợi -->
         <finalName>ROOT</finalName>
+
         <plugins>
-            <!-- Plugin để biên dịch code Java -->
+
+            <!-- Plugin biên dịch Java -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
-                <version>3.11.0</version> <!-- Cập nhật phiên bản plugin -->
+                <version>3.11.0</version>
+                <configuration>
+                    <source>${maven.compiler.source}</source>
+                    <target>${maven.compiler.target}</target>
+                </configuration>
             </plugin>
-            <!-- Plugin để đóng gói thành file .war -->
+
+            <!-- Plugin đóng gói WAR -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-war-plugin</artifactId>
                 <version>3.3.2</version>
+                <configuration>
+                    <failOnMissingWebXml>false</failOnMissingWebXml>
+                </configuration>
             </plugin>
+
+            <!-- Plugin để kiểm tra dependency offline -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-dependency-plugin</artifactId>
+                <version>3.6.1</version>
+            </plugin>
+
         </plugins>
     </build>
+
+    <repositories>
+        <!-- Bảo đảm Maven tìm được tất cả dependency Jakarta EE -->
+        <repository>
+            <id>central</id>
+            <url>https://repo.maven.apache.org/maven2</url>
+        </repository>
+    </repositories>
+
 </project>
