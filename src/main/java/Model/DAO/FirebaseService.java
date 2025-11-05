@@ -412,4 +412,47 @@ public class FirebaseService {
         }
         return validMoves;
     }
+    
+    public static void deleteWaitingMatch(String matchId, String requesterId) 
+            throws ExecutionException, InterruptedException {
+                
+        DocumentReference matchRef = db.collection("matches").document(matchId);
+        DocumentSnapshot matchDoc = matchRef.get().get();
+
+        if (!matchDoc.exists()) {
+            System.out.println("Không thể xóa: Trận đấu " + matchId + " không tồn tại.");
+            return;
+        }
+
+        // Chỉ xóa nếu trận đấu vẫn đang ở trạng thái "WAITING"
+        if (!"WAITING".equals(matchDoc.getString("status"))) {
+            System.out.println("Không thể xóa: Trận đấu " + matchId + " không còn ở trạng thái chờ.");
+            return;
+        }
+
+        // Lấy thông tin người tạo phòng (có thể là player1 hoặc player2)
+        Map<String, Object> creatorInfo = null;
+        if (matchDoc.get("player1") != null) {
+            creatorInfo = (Map<String, Object>) matchDoc.get("player1");
+        } else if (matchDoc.get("player2") != null) {
+            creatorInfo = (Map<String, Object>) matchDoc.get("player2");
+        }
+
+        if (creatorInfo == null) {
+            System.out.println("Không thể xóa: Không tìm thấy thông tin người tạo phòng cho trận " + matchId);
+            return;
+        }
+
+        String creatorId = (String) creatorInfo.get("uid");
+
+        // KIỂM TRA BẢO MẬT QUAN TRỌNG NHẤT:
+        // Người yêu cầu xóa có phải là người đã tạo phòng không?
+        if (requesterId.equals(creatorId)) {
+            // Nếu đúng, tiến hành xóa document
+            matchRef.delete().get();
+            System.out.println("Thành công: Đã xóa phòng chờ " + matchId + " do người tạo phòng thoát.");
+        } else {
+            System.out.println("Không thể xóa: User " + requesterId + " không có quyền xóa phòng " + matchId + " của user " + creatorId);
+        }
+    }
 }

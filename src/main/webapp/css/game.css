@@ -533,3 +533,84 @@ body {
     .captured-pieces { max-width: calc(100% - 150px); }
     .captured-pieces img { width: 24px; height: 24px; }
 }
+.chat-container {
+    width: 100%; /* Vừa vặn với sidebar */
+    margin-top: 20px; /* Khoảng cách với các nút bên trên */
+    display: flex;
+    flex-direction: column;
+    background: var(--bg-white); /* Nền trắng (từ style.css) */
+    border: 1px solid var(--border-light);
+    border-radius: var(--border-radius, 8px); /* Dùng biến bo góc, fallback 8px */
+    overflow: hidden;
+    
+    /* Đặt chiều cao tối đa, bạn có thể chỉnh con số này */
+    height: 350px; 
+    box-sizing: border-box;
+}
+
+.chat-container h3 {
+    padding: 10px 15px;
+    margin: 0;
+    background: var(--bg-light); /* Nền xám nhạt */
+    border-bottom: 1px solid var(--border-light);
+    color: var(--text-dark);
+    font-size: 1rem; /* Nhỏ hơn h2 một chút */
+    font-weight: 600;
+}
+
+.chat-log {
+    flex-grow: 1; /* Tự động co dãn chiều cao để lấp đầy */
+    overflow-y: auto; /* Thêm thanh cuộn khi chat đầy */
+    padding: 15px;
+    font-size: 14px;
+}
+
+.chat-log .message {
+    margin-bottom: 8px;
+    line-height: 1.4;
+    word-wrap: break-word; /* Tự động xuống dòng */
+}
+
+.chat-log .message.mine { /* Tin nhắn của bạn */
+    color: var(--primary-blue);
+    font-weight: 600;
+}
+
+.chat-log .message.opponent { /* Tin nhắn của đối thủ */
+    color: var(--accent-orange);
+    font-weight: 500;
+}
+
+.chat-form {
+    display: flex;
+    border-top: 1px solid var(--border-light);
+}
+
+.chat-form input {
+    flex-grow: 1;
+    border: none;
+    padding: 15px;
+    font-size: 14px;
+    background: var(--bg-white);
+    color: var(--text-dark);
+    font-family: var(--font-family);
+}
+
+.chat-form input:focus {
+    outline: none;
+    box-shadow: inset 0 0 0 2px var(--primary-blue-dark);
+}
+
+.chat-form button {
+    background: var(--gradient-primary);
+    color: white;
+    border: none;
+    padding: 0 20px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: all 0.3s ease;
+}
+
+.chat-form button:hover {
+    filter: brightness(1.1);
+}

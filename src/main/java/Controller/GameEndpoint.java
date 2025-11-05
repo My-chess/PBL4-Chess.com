@@ -15,6 +15,7 @@ import jakarta.websocket.server.ServerEndpoint;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -37,6 +38,8 @@ public class GameEndpoint {
     private static final ScheduledExecutorService afkScheduler = Executors.newScheduledThreadPool(1);
     // Map để lưu trữ tác vụ kiểm tra AFK cho mỗi ván cờ
     private static final Map<String, ScheduledFuture<?>> afkTasks = new ConcurrentHashMap<>();
+    
+    private static final Map<String, Set<Session>> rooms = new ConcurrentHashMap<>();
 
     /**
      * Được gọi khi một client mới kết nối tới WebSocket.
@@ -68,6 +71,17 @@ public class GameEndpoint {
         
         // Lưu userId vào session để dùng ở onClose
         session.getUserProperties().put("userId", userId);
+        try {
+            // Giả sử bạn có hàm này trong FirebaseService để lấy tên
+            // (Bạn cần tự triển khai hàm này)
+            String displayName = UserService.getUserDisplayName(userId); 
+            session.getUserProperties().put("displayName", displayName);
+        } catch (Exception e) {
+            // Nếu lỗi, dùng tạm email/userId
+            System.err.println("Failed to get displayName for " + userId);
+            session.getUserProperties().put("displayName", userId);
+        }
+        
     }
 
     /**
@@ -96,6 +110,7 @@ public class GameEndpoint {
             case "offer_draw": handleOfferDraw(session, gameId); break;
             case "accept_draw": handleAcceptDraw(session, gameId); break;
             case "decline_draw": handleDeclineDraw(session, gameId); break;
+            case "CHAT": handleChatMessage(messageData, session, gameId); break;
             default: sendError(session, "Loại tin nhắn không hợp lệ."); break;
         }
 
@@ -113,6 +128,45 @@ public class GameEndpoint {
      * Xử lý tin nhắn di chuyển quân cờ.
      */
  // Dán đoạn mã này vào bên trong lớp `GameEndpoint.java` của bạn,
+    
+    private void handleChatMessage(Map<String, Object> messageData, Session session, String gameId) {
+        try {
+            // 1. Lấy nội dung chat và thông tin người gửi
+            String chatContent = (String) messageData.get("message");
+            String senderId = (String) session.getUserProperties().get("userId");
+            String senderName = (String) session.getUserProperties().get("displayName");
+
+            // 2. Tạo JSON để gửi đi
+            Map<String, Object> outgoingChatMessage = new HashMap<>();
+            outgoingChatMessage.put("type", "CHAT");
+            outgoingChatMessage.put("sender", senderName); // Tên người gửi
+            outgoingChatMessage.put("message", chatContent);
+            String outgoingJson = gson.toJson(outgoingChatMessage);
+
+            // 3. Tìm ID của đối thủ
+            String opponentId = null;
+            Map<String, Session> sessionsInGame = gameSessions.get(gameId);
+            if (sessionsInGame == null) return; // Phòng không tồn tại
+
+            // Duyệt qua 2 (hoặc 1) user ID trong phòng
+            for (String userId : sessionsInGame.keySet()) {
+                if (!userId.equals(senderId)) {
+                    opponentId = userId;
+                    break;
+                }
+            }
+
+            // 4. Gửi tin nhắn cho đối thủ (nếu họ đang online)
+            // Tận dụng hàm sendToOnePlayer mà bạn đã có sẵn!
+            if (opponentId != null) {
+                sendToOnePlayer(gameId, opponentId, outgoingJson);
+            }
+
+        } catch (Exception e) {
+            System.err.println("Lỗi khi xử lý tin nhắn chat:");
+            e.printStackTrace();
+        }
+    }
  // thay thế cho hàm handleMoveMessage cũ.
 
  /**
