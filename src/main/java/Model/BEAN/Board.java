@@ -1,6 +1,7 @@
- package Model.BEAN; // Giữ nguyên package của bạn
+package Model.BEAN; // Giữ nguyên package của bạn
 
 import java.util.Map;
+import Model.DAO.FirebaseService;
 
 import Model.BEAN.PieceBEAN; // Đảm bảo bạn đã import các lớp quân cờ
 
@@ -47,6 +48,10 @@ public class Board {
                 case "PawnBEAN": grid[y][x] = new PawnBEAN(0, color, x, y); break;
             }
         }
+    }
+    
+    public Board(Board other) {
+        this(Model.DAO.FirebaseService.boardToMap(other));
     }
 
     /**

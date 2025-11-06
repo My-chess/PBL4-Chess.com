@@ -89,7 +89,7 @@ public class FirebaseService {
     }
     
     
-    private static Map<String, String> boardToMap(Board board) {
+    public static Map<String, String> boardToMap(Board board) {
         Map<String, String> boardState = new HashMap<>();
         for (int y = 0; y < 10; y++) {
             for (int x = 0; x < 9; x++) {
