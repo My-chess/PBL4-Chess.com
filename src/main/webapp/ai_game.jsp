@@ -28,8 +28,10 @@
             <div class="player-info-panel top">
                 <div class="captured-pieces" id="captured-for-ai"></div>
                 <div class="player-details">
-                    <span class="player-name" id="player-ai-name">Máy (<%= difficulty %>)</span> 
+                    <span class="player-name" id="player-ai-name">Máy (<%= difficulty %>)</span>
+                    <span class="player-elo" id="player-ai-elo"></span> <%-- ELO của máy có thể để trống --%>
                 </div>
+                <div class="timer" id="timer-ai">00:00</div>
             </div>
 
             <%-- Bàn cờ --%>
@@ -44,7 +46,19 @@
                 <div class="captured-pieces" id="captured-for-player"></div>
                 <div class="player-details">
                     <span class="player-name" id="player-name"><%= username %></span>
-                 </div> 
+                    <span class="player-elo" id="player-elo">
+                        <%-- === ĐÃ CẬP NHẬT Ở ĐÂY === --%>
+                        <c:choose>
+                            <c:when test="${not empty loggedInUser}">
+                                ELO: ${loggedInUser.elo}
+                            </c:when>
+                            <c:otherwise>
+                                ELO: N/A
+                            </c:otherwise>
+                        </c:choose>
+                    </span>
+                </div>
+                <div class="timer" id="timer-player">00:00</div>
             </div>
         </div>
 
@@ -58,6 +72,10 @@
                     <%= "Red".equals(playerColor) ? "Người chơi" : "Máy" %>
                 </span>
             </div>
+
+             <div id="status-message">Đang tải ván cờ...</div>
+
+
             <%-- Các nút hành động: đầu hàng --%>
             <div class="game-actions" id="game-actions-panel">
                 <button id="resign-btn" class="btn" style="background-color: var(--accent-red);">Đầu hàng</button>
