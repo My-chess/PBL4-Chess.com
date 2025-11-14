@@ -614,3 +614,13 @@ body {
 .chat-form button:hover {
     filter: brightness(1.1);
 }
+.ghost-piece {
+    /* Làm cho quân cờ mờ đi */
+    opacity: 0.3;
+    
+    /* Đảm bảo bóng mờ không chặn các cú click chuột */
+    pointer-events: none; 
+    
+    /* Đặt z-index thấp hơn để nó nằm dưới các quân cờ thật nếu cần */
+    z-index: 1; 
+}

@@ -28,8 +28,7 @@
             <div class="player-info-panel top">
                 <div class="captured-pieces" id="captured-for-ai"></div>
                 <div class="player-details">
-                    <span class="player-name" id="player-ai-name">Máy (<%= difficulty %>)</span>
-                    <span class="player-elo" id="player-ai-elo"></span> <%-- ELO của máy có thể để trống --%>
+                    <span class="player-name" id="player-ai-name">Máy (<%= difficulty %>)</span> 
                 </div>
                 <div class="timer" id="timer-ai">00:00</div>
             </div>

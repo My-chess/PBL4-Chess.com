@@ -1,4 +1,6 @@
- document.addEventListener('DOMContentLoaded', function() {
+ 
+
+document.addEventListener('DOMContentLoaded', function() {
    
     const boardElement = document.getElementById('board');
     const turnColorEl = document.getElementById('turn-color');

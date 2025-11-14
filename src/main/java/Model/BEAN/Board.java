@@ -94,132 +94,78 @@ public class Board {
         grid[6][6] = new PawnBEAN(31, "Red", 6, 6);
         grid[6][8] = new PawnBEAN(32, "Red", 8, 6);
     }
-
-    /**
-     * Lấy quân cờ tại một tọa độ (x, y) cụ thể.
-     * @param x Tọa độ x (cột).
-     * @param y Tọa độ y (hàng).
-     * @return Đối tượng PieceBEAN nếu có, ngược lại trả về null.
-     */
+ 
     public PieceBEAN getPieceAt(int x, int y) {
         if (!isWithinBounds(x, y)) {
             return null;
         }
         return grid[y][x];
     }
-
-    /**
-     * Lấy toàn bộ mảng quân cờ.
-     * @return Mảng 2 chiều PieceBEAN.
-     */
+ 
     public PieceBEAN[][] getGrid() {
         return this.grid;
     }
-
-    /**
-     * Kiểm tra xem một tọa độ có nằm trong bàn cờ không.
-     * @param x Tọa độ x.
-     * @param y Tọa độ y.
-     * @return true nếu hợp lệ, false nếu không.
-     */
+ 
     public boolean isWithinBounds(int x, int y) {
         return x >= 0 && x < 9 && y >= 0 && y < 10;
     }
 
-    /**
-     * Thực hiện một nước đi trên bàn cờ.
-     * Hàm này thay đổi trực tiếp trạng thái của `grid`.
-     * @param startX Vị trí bắt đầu X.
-     * @param startY Vị trí bắt đầu Y.
-     * @param endX Vị trí kết thúc X.
-     * @param endY Vị trí kết thúc Y.
-     */
+ 
     public void executeMove(int startX, int startY, int endX, int endY) {
         PieceBEAN pieceToMove = getPieceAt(startX, startY);
         if (pieceToMove != null) {
             PieceBEAN capturedPiece = getPieceAt(endX, endY);
             if (capturedPiece != null) {
-                capturedPiece.setAlive(false); // Đánh dấu quân cờ bị ăn
+                capturedPiece.setAlive(false); 
             }
             pieceToMove.setPosition(endX, endY);
             grid[endY][endX] = pieceToMove;
             grid[startY][startX] = null;
         }
     }
-    
-    /**
-     * >>> HOÀN THIỆN LOGIC KIỂM TRA NƯỚC ĐI <<<
-     * Đây là hàm kiểm tra toàn diện nhất, bao gồm tất cả các luật cờ.
-     * @param startX Vị trí bắt đầu X.
-     * @param startY Vị trí bắt đầu Y.
-     * @param endX Vị trí kết thúc X.
-     * @param endY Vị trí kết thúc Y.
-     * @return true nếu nước đi hợp lệ, false nếu không.
-     */
-    public boolean isMoveValid(int startX, int startY, int endX, int endY) {
-        // 1. Kiểm tra cơ bản: Phải có quân cờ ở ô bắt đầu.
+ 
+    public boolean isMoveValid(int startX, int startY, int endX, int endY) { 
         PieceBEAN pieceToMove = getPieceAt(startX, startY);
         if (pieceToMove == null) {
             return false;
         }
-
-        // 2. Kiểm tra cơ bản: Ô đích không được có quân cờ cùng màu.
+ 
         PieceBEAN destinationPiece = getPieceAt(endX, endY);
         if (destinationPiece != null && destinationPiece.getColor().equals(pieceToMove.getColor())) {
             return false;
         }
-
-        // 3. Kiểm tra luật di chuyển riêng của từng quân cờ.
-        // Ví dụ: Mã đi chữ L, Tượng đi chéo 2, v.v.
+ 
         if (!pieceToMove.isValidMove(endX, endY, this.grid)) {
             return false;
         }
-        
-        // 4. Kiểm tra luật chống Tướng đối mặt.
-        // Tạo một bàn cờ tạm để kiểm tra trạng thái sau khi đi.
+         
         PieceBEAN temp = grid[endY][endX];
         grid[endY][endX] = grid[startY][startX];
         grid[startY][startX] = null;
-        boolean kingsWillFace = areKingsFacing();
-        // Hoàn tác di chuyển trên bàn cờ tạm.
+        boolean kingsWillFace = areKingsFacing(); 
         grid[startY][startX] = grid[endY][endX];
-        grid[endY][endX] = temp;
-        // Nếu sau nước đi mà 2 Tướng đối mặt, nước đi không hợp lệ.
+        grid[endY][endX] = temp; 
         if (kingsWillFace) {
             return false;
         }
-
-        // 5. >>> LOGIC MỚI QUAN TRỌNG NHẤT <<<
-        // Kiểm tra xem nước đi có tự đặt Tướng của mình vào thế bị chiếu không.
-        // Đây là luật cờ cơ bản nhưng thường bị bỏ sót.
-        
-        // 5.1. Tạm thời thực hiện nước đi trên bàn cờ thật.
-        PieceBEAN capturedPiece = getPieceAt(endX, endY); // Lưu lại quân cờ có thể bị ăn
+ 
+        PieceBEAN capturedPiece = getPieceAt(endX, endY); 
         executeMove(startX, startY, endX, endY);
-
-        // 5.2. Kiểm tra xem Tướng của bên vừa đi có bị chiếu không.
+ 
         boolean isSelfInCheck = isKingInCheck(pieceToMove.getColor());
-
-        // 5.3. Hoàn tác lại nước đi để trả bàn cờ về trạng thái ban đầu.
+ 
         undoMove(startX, startY, endX, endY, capturedPiece);
-
-        // 5.4. Nếu nước đi đó làm Tướng mình bị chiếu -> nước đi không hợp lệ.
+ 
         if (isSelfInCheck) {
             return false;
         }
-
-        // Nếu vượt qua tất cả các kiểm tra trên, nước đi là hợp lệ.
+ 
         return true;
     }
     
-    /**
-     * Kiểm tra xem Tướng của một màu cụ thể có đang bị chiếu hay không.
-     * @param kingColor Màu của Tướng cần kiểm tra ("Red" hoặc "Black").
-     * @return true nếu Tướng đang bị chiếu.
-     */
+  
     public boolean isKingInCheck(String kingColor) {
-        int kingX = -1, kingY = -1;
-        // 1. Tìm vị trí của Tướng
+        int kingX = -1, kingY = -1; 
         for (int y = 0; y < 10; y++) {
             for (int x = 0; x < 9; x++) {
                 PieceBEAN p = getPieceAt(x, y);
@@ -232,23 +178,24 @@ public class Board {
             if (kingX != -1) break;
         }
 
-        if (kingX == -1) return false; // Không tìm thấy Tướng (trường hợp bất thường)
-
-        // 2. Duyệt qua tất cả quân cờ của đối phương.
+        if (kingX == -1) return false;  
         String opponentColor = kingColor.equals("Red") ? "Black" : "Red";
         for (int y = 0; y < 10; y++) {
             for (int x = 0; x < 9; x++) {
                 PieceBEAN p = getPieceAt(x, y);
-                if (p != null && p.getColor().equals(opponentColor)) {
-                    // Kiểm tra xem quân cờ này có thể di chuyển hợp lệ đến vị trí Tướng không.
-                    // Lưu ý: isValidMove của từng quân đã bao gồm logic ăn quân.
+                if (p != null && p.getColor().equals(opponentColor)) { 
                     if (p.isValidMove(kingX, kingY, this.grid)) {
-                        return true; // Tìm thấy một quân có thể ăn Tướng -> Tướng bị chiếu.
+                        return true;  
                     }
                 }
             }
         }
-        return false; // Duyệt hết bàn cờ mà không có quân nào chiếu Tướng.
+  
+        if (areKingsFacing()) {
+            return true;  
+        }
+ 
+        return false;
     }
 
     /**
