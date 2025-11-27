@@ -122,4 +122,33 @@ public class UserService {
 
         batch.commit().get();
     }
+    public static String getUserDisplayName(String userId) 
+            throws ExecutionException, InterruptedException {
+        
+        if (userId == null || userId.isEmpty()) {
+            return "Khách"; // Tên mặc định nếu userId rỗng
+        }
+
+        // 1. Tham chiếu đến document của người dùng trong collection "users"
+        DocumentReference userRef = getDb().collection("users").document(userId);
+        
+        // 2. Lấy document
+        ApiFuture<DocumentSnapshot> future = userRef.get();
+        DocumentSnapshot document = future.get();
+        
+        // 3. Xử lý kết quả
+        if (document.exists()) {
+            String displayName = document.getString("username");
+            
+            // Nếu tìm thấy, trả về displayName
+            if (displayName != null && !displayName.isEmpty()) {
+                return displayName;
+            }
+        }
+        
+        // 4. Fallback: Nếu document không tồn tại, HOẶC không có trường displayName
+        // Trả về chính userId làm tên hiển thị
+        System.err.println("Không tìm thấy displayName cho user: " + userId + ". Sử dụng tạm userId.");
+        return userId;
+    }
 }

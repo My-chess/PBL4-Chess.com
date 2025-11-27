@@ -25,29 +25,46 @@ public class FirebaseConfig implements ServletContextListener {
      */
     @Override
     public void contextInitialized(ServletContextEvent sce) {
-        System.out.println("FirebaseConfig: Initializing Firebase Admin SDK from Environment Variable...");
-        
+        System.out.println("FirebaseConfig: Starting initialization...");
+
         try {
-            // Chỉ khởi tạo nếu chưa có ứng dụng Firebase nào chạy
-            if (FirebaseApp.getApps().isEmpty()) { 
-                
-                // 1. Đọc nội dung key từ biến môi trường của hệ thống (Render sẽ cung cấp biến này)
-                // System.getenv() là cách chuẩn của Java để đọc environment variables.
-                String firebaseCredentialsJson = System.getenv("GOOGLE_CREDENTIALS_JSON");
+            if (FirebaseApp.getApps().isEmpty()) {
+                GoogleCredentials credentials = null;
 
-                // 2. Kiểm tra xem biến môi trường có tồn tại không. Đây là bước gỡ lỗi quan trọng.
-                if (firebaseCredentialsJson == null || firebaseCredentialsJson.isEmpty()) {
-                    System.err.println("FATAL ERROR: Environment variable GOOGLE_CREDENTIALS_JSON is not set.");
-                    throw new RuntimeException("Environment variable GOOGLE_CREDENTIALS_JSON is not set.");
+                // 1. ƯU TIÊN: Kiểm tra biến môi trường GOOGLE_CREDENTIALS_JSON trước
+                String envCredentials = System.getenv("GOOGLE_CREDENTIALS_JSON");
+
+                if (envCredentials != null && !envCredentials.isEmpty()) {
+                    System.out.println(
+                            "FirebaseConfig: Found GOOGLE_CREDENTIALS_JSON environment variable. Loading from string...");
+                    // Chuyển chuỗi JSON thành InputStream
+                    InputStream envStream = new ByteArrayInputStream(envCredentials.getBytes(StandardCharsets.UTF_8));
+                    credentials = GoogleCredentials.fromStream(envStream);
                 }
-                System.out.println("Successfully loaded credentials from environment variable.");
+                // 2. DỰ PHÒNG: Nếu không có biến môi trường, tìm file trong WEB-INF
+                else {
+                    System.out.println(
+                            "FirebaseConfig: Environment variable not found. Looking for serviceAccountKey.json in WEB-INF...");
+                    ServletContext context = sce.getServletContext();
+                    InputStream serviceAccountStream = context.getResourceAsStream("/WEB-INF/serviceAccountKey.json");
 
-                // 3. Chuyển chuỗi JSON (dạng String) thành một InputStream mà Google Credentials có thể đọc được
-                InputStream serviceAccountStream = new ByteArrayInputStream(firebaseCredentialsJson.getBytes(StandardCharsets.UTF_8));
-                
-                // 4. Khởi tạo Firebase SDK
+                    if (serviceAccountStream != null) {
+                        System.out.println("FirebaseConfig: Found serviceAccountKey.json file.");
+                        credentials = GoogleCredentials.fromStream(serviceAccountStream);
+                    } else {
+                        System.err.println("CRITICAL ERROR: Could not find credentials in ENV or File.");
+                    }
+                }
+
+                // 3. Kiểm tra xem đã tải được credentials chưa
+                if (credentials == null) {
+                    throw new IOException(
+                            "Firebase configuration failed: No credentials found (Checked GOOGLE_CREDENTIALS_JSON and /WEB-INF/serviceAccountKey.json).");
+                }
+
+                // 4. Khởi tạo Firebase
                 FirebaseOptions options = FirebaseOptions.builder()
-                        .setCredentials(GoogleCredentials.fromStream(serviceAccountStream))
+                        .setCredentials(credentials)
                         .build();
 
                 FirebaseApp.initializeApp(options);
@@ -61,6 +78,5 @@ public class FirebaseConfig implements ServletContextListener {
     
     @Override
     public void contextDestroyed(ServletContextEvent sce) {
-        // Có thể thêm logic dọn dẹp ở đây nếu cần
     }
 }

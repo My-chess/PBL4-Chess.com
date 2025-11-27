@@ -21,6 +21,10 @@ document.addEventListener('DOMContentLoaded', function() {
     var declineDrawBtn = document.getElementById('decline-draw-btn');
     var capturedForRedEl = document.getElementById('captured-for-red');
     var capturedForBlackEl = document.getElementById('captured-for-black');
+	var chatLog = document.getElementById('chat-log');
+	var chatForm = document.getElementById('chat-form');
+	var chatMessageInput = document.getElementById('chat-message-input');
+    // (Các UI timer/player sẽ được lấy trực tiếp bằng getElementById trong hàm)
 
     // B. Biến quản lý trạng thái
     var selectedSquare = null;
@@ -30,6 +34,8 @@ document.addEventListener('DOMContentLoaded', function() {
     var currentTurnFromServer = null;
     var timerInterval = null;
     var previousBoardState = null;
+    var isGameWaiting = false; // <<< === THÊM MỚI === (Biến theo dõi trạng thái chờ)
+	
 
     // C. Khởi tạo âm thanh
     var sounds = {
@@ -272,27 +278,47 @@ document.addEventListener('DOMContentLoaded', function() {
 	}
 
     function formatTime(ms) {
+        // <<< === SỬA LỖI === (Đã xóa padStart() để tương thích ES5)
         if (ms <= 0) return "00:00";
         var totalSeconds = Math.floor(ms / 1000);
-        var minutes = Math.floor(totalSeconds / 60).toString().padStart(2, '0');
-        var seconds = (totalSeconds % 60).toString().padStart(2, '0');
-        return minutes + ':' + seconds;
+        var minutes = Math.floor(totalSeconds / 60);
+        var seconds = totalSeconds % 60;
+        
+        var minutesStr = (minutes < 10 ? '0' : '') + minutes;
+        var secondsStr = (seconds < 10 ? '0' : '') + seconds;
+        
+        return minutesStr + ':' + secondsStr;
     }
     
     function updateAndStartTimer(matchData) {
         clearInterval(timerInterval);
-        if (!matchData.lastMoveTimestamp || matchData.status !== 'IN_PROGRESS') return;
+
+        // Lấy các element timer (phiên bản này lấy trực tiếp)
+        var p1Display = document.getElementById('timer-red');
+        var p2Display = document.getElementById('timer-black');
+        
+        // Cập nhật thời gian tĩnh ngay cả khi game chưa bắt đầu
+        var p1Time = matchData.player1TimeLeftMs || 0;
+        var p2Time = matchData.player2TimeLeftMs || 0;
+
+        if (!matchData.lastMoveTimestamp || matchData.status !== 'IN_PROGRESS') {
+            // Nếu game chưa chạy, chỉ hiển thị thời gian và xóa active
+            p1Display.textContent = formatTime(p1Time);
+            p2Display.textContent = formatTime(p2Time);
+            p1Display.classList.remove('active');
+            p2Display.classList.remove('active');
+            return;
+        }
+        
         var serverNow = firebase.firestore.Timestamp.now().toMillis();
         var lastMoveTime = matchData.lastMoveTimestamp.toMillis();
         var timeElapsed = serverNow - lastMoveTime;
-        var p1Time = matchData.player1TimeLeftMs;
-        var p2Time = matchData.player2TimeLeftMs;
+        
+        // Tính lại thời gian ban đầu
         if (matchData.currentTurn === 'Red') p1Time -= timeElapsed;
         else p2Time -= timeElapsed;
 
         timerInterval = setInterval(function() {
-            var p1Display = document.getElementById('timer-red');
-            var p2Display = document.getElementById('timer-black');
             p1Display.textContent = formatTime(p1Time);
             p2Display.textContent = formatTime(p2Time);
 
@@ -368,6 +394,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         var reasonText = '';
                         switch(data.reason) {
                             case 'CHECKMATE': reasonText = 'do chiếu bí'; break;
+							case 'STALEMATE': reasonText = 'do đối thủ Hết nước đi'; break;
                             case 'TIMEOUT': reasonText = 'do đối thủ hết giờ'; break;
                             case 'RESIGN': reasonText = 'do đối thủ đầu hàng'; break;
                             case 'DISCONNECT': reasonText = 'do đối thủ mất kết nối'; break;
@@ -402,11 +429,17 @@ document.addEventListener('DOMContentLoaded', function() {
                          statusMessageEl.textContent = (currentTurnFromServer === myColor) ? "Đến lượt bạn!" : "Đang chờ đối thủ...";
                     }, 3000);
                     break;
+				case 'CHAT':
+					// data.sender là tên đối thủ (do server gán)
+					// data.message là nội dung tin nhắn
+					appendChatMessage(data.sender + ": " + data.message, "opponent");
+					break;
             }
         };
     }
 
     function addEventListeners() {
+		
         offerDrawBtn.addEventListener('click', function() {
             if (confirm('Bạn có chắc muốn gửi lời mời hòa cờ?')) {
                 websocket.send(JSON.stringify({ type: 'offer_draw' }));
@@ -483,13 +516,47 @@ document.addEventListener('DOMContentLoaded', function() {
 	            }
 	        }
 	    });
+		chatForm.addEventListener('submit', function(e) {
+		        e.preventDefault(); // Ngăn form reload trang
+		        var messageText = chatMessageInput.value;
+		        
+		        if (messageText && messageText.trim() !== "" && websocket && websocket.readyState === WebSocket.OPEN) {
+		            
+		            // 1. Tạo JSON tin nhắn chat
+		            var chatMessage = {
+		                type: "CHAT",
+		                message: messageText.trim()
+		            };
+		            
+		            // 2. Gửi qua WebSocket
+		            websocket.send(JSON.stringify(chatMessage));
+		            
+		            // 3. Hiển thị tin nhắn của BẠN lên log
+		            appendChatMessage("Bạn: " + messageText, "mine");
+		            
+		            // 4. Xóa nội dung input
+		            chatMessageInput.value = '';
+		        }
+		    });
 
         /* ===== THÊM MỚI: Lắng nghe sự kiện resize để sửa lỗi hiển thị ===== */
         window.addEventListener('resize', debounce(updateSquarePositions, 100));
     }
+	function appendChatMessage(message, type) { // type là "mine" hoặc "opponent"
+	    var messageEl = document.createElement('div');
+	    messageEl.className = 'message ' + type;
+	    messageEl.textContent = message;
+	    
+	    chatLog.appendChild(messageEl);
+	    
+	    // Tự động cuộn xuống tin nhắn mới nhất
+	    chatLog.scrollTop = chatLog.scrollHeight;
+	}
 
     function listenToMatchUpdates() {
+        var isFirstLoad = true; // <<< === THÊM MỚI === (Biến cờ để chỉ chạy 1 lần)
         var matchDocRef = db.collection('matches').doc(gameId);
+
         matchDocRef.onSnapshot(function(doc) {
             console.log("✅ 4. Match listener triggered. UI will be updated.");
             if (!doc.exists) {
@@ -498,6 +565,9 @@ document.addEventListener('DOMContentLoaded', function() {
             }
             var matchData = doc.data();
             currentTurnFromServer = matchData.currentTurn;
+            
+            // <<< === THÊM MỚI === (Cập nhật trạng thái chờ toàn cục)
+            isGameWaiting = (matchData.status === 'WAITING');
             
             if (matchData.boardState) {
                 renderBoardFromState(matchData.boardState);
@@ -528,6 +598,39 @@ document.addEventListener('DOMContentLoaded', function() {
             }
             
             updateAndStartTimer(matchData);
+
+            // <<< === THÊM MỚI === (Toàn bộ logic xóa phòng khi thoát)
+            if (isFirstLoad) {
+                // Xác định xem user này có phải người tạo phòng đang chờ không
+                // Lưu ý: dùng 'p1' và 'p2' theo biến của file này
+                var isRoomCreator = (myColor === "Red" && p2 == null) || (myColor === "Black" && p1 == null);
+
+                if (isRoomCreator) {
+                    // Kịch bản 1: Hỏi xác nhận (chỉ khi đang chờ)
+                    window.addEventListener('beforeunload', function (e) {
+                        if (isGameWaiting) { 
+                            e.preventDefault(); 
+                            e.returnValue = ''; 
+                        }
+                    });
+
+                    // Kịch bản 2: Tự động xóa phòng khi đóng tab/back
+                    window.addEventListener('pagehide', function () {
+                        if (isGameWaiting) {
+                            var params = new URLSearchParams();
+                            params.append('gameId', gameId);
+                            params.append('userId', currentUserId);
+                            
+                            navigator.sendBeacon(contextPath + '/api/deleteWaitingRoom', params);
+                            console.log("Gửi yêu cầu xóa phòng (pagehide).");
+                        }
+                    });
+                    console.log("✅ Đã kích hoạt logic tự động xóa phòng chờ (dùng pagehide).");
+                }
+                isFirstLoad = false;
+            }
+            // <<< === KẾT THÚC PHẦN THÊM MỚI ===
+
         }, function(error) { 
             console.error("❌ Firestore Error on Match listener: ", error);
         });

@@ -4,46 +4,8 @@
 <html>
 <head>
     <title>Danh sách phòng chờ</title>
-    <%-- Bạn có thể link đến file CSS chung của mình ở đây --%>
     <link rel="stylesheet" href="${pageContext.request.contextPath}/css/style.css">
-    <style>
-        /* CSS riêng cho trang lobby */
-        .lobby-container {
-            width: 80%;
-            margin: 40px auto;
-            background-color: #2c2c2e;
-            padding: 20px;
-            border-radius: 8px;
-        }
-        .lobby-table {
-            width: 100%;
-            border-collapse: collapse;
-            color: #f0f0f0;
-        }
-        .lobby-table th, .lobby-table td {
-            padding: 12px 15px;
-            border-bottom: 1px solid #444;
-            text-align: left;
-        }
-        .lobby-table th {
-            background-color: #3a3a3c;
-        }
-        .lobby-table tr:hover {
-            background-color: #3f3f41;
-        }
-        .join-button {
-            padding: 8px 16px;
-            background-color: #4CAF50;
-            color: white;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            font-weight: bold;
-        }
-        .join-button:hover {
-            background-color: #45a049;
-        }
-    </style>
+    
 </head>
 <body>
     <%-- Nhúng header chung --%>
@@ -64,8 +26,29 @@
                 <%-- Dùng JSTL để lặp qua danh sách waitingMatches --%>
                 <c:forEach items="${waitingMatches}" var="match">
                     <tr>
-                        <td><c:out value="${match.player1.displayName}" /></td>
-                        <td><c:out value="${match.player1.elo}" /></td>
+                        
+                        <%-- === THAY ĐỔI CỐT LÕI BẮT ĐẦU TỪ ĐÂY === --%>
+                        <c:choose>
+                            <%-- Trường hợp phòng do người chơi 1 (Đỏ) tạo --%>
+                            <c:when test="${not empty match.player1}">
+                                <td><c:out value="${match.player1.displayName}" /> (Đỏ)</td>
+                                <td><c:out value="${match.player1.elo}" /></td>
+                            </c:when>
+                            
+                            <%-- Trường hợp phòng do người chơi 2 (Đen) tạo --%>
+                            <c:when test="${not empty match.player2}">
+                                <td><c:out value="${match.player2.displayName}" /> (Đen)</td>
+                                <td><c:out value="${match.player2.elo}" /></td>
+                            </c:when>
+                            
+                            <%-- (Phòng bị lỗi) --%>
+                            <c:otherwise>
+                                <td>[Phòng lỗi]</td>
+                                <td>N/A</td>
+                            </c:otherwise>
+                        </c:choose>
+                        <%-- === KẾT THÚC THAY ĐỔI === --%>
+
                         <td>
                             <%-- Form này sẽ gửi yêu cầu POST đến JoinGameServlet --%>
                             <form action="${pageContext.request.contextPath}/joinGame" method="POST">

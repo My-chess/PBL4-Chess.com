@@ -196,14 +196,18 @@ h1 {
 
 /* --- Lobby Styles --- */
 .lobby-container {
-    max-width: 800px;
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 30px;
-    margin: 40px auto;
+    
+    /* 1. Đã sửa: Full-width và 1 cột */
+    max-width: none;
+    margin: 40px 0;
+    display: block; 
+    
+    /* 2. Đã sửa: Padding và box-sizing */
     padding: 0 20px;
+    box-sizing: border-box; 
 }
 
+/* (Các quy tắc .lobby-panel, .join-form, ... giữ nguyên) */
 .lobby-panel {
     background: var(--bg-card);
     padding: 30px;
@@ -214,6 +218,7 @@ h1 {
     overflow: hidden;
     transition: transform 0.3s ease, box-shadow 0.3s ease;
 }
+/* <<< LỖI CÚ PHÁP CỦA BẠN ĐÃ ĐƯỢC SỬA Ở ĐÂY (TÁCH RA) */
 
 .lobby-panel::before {
     content: '';
@@ -264,11 +269,95 @@ h1 {
     flex-shrink: 0;
 }
 
+/* === THÊM MỚI: TOÀN BỘ CSS CHO BẢNG LOBBY === */
+
+.lobby-table {
+    display: table;
+    width: 100%;
+    border-collapse: collapse;
+    color: var(--text-dark); /* Đổi sang màu text của theme sáng */
+    table-layout: fixed; 
+    background-color: var(--bg-card); /* Nền trắng cho bảng */
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow);
+    overflow: hidden; /* Giúp bo góc hoạt động */
+    border: 1px solid var(--border-light);
+}
+
+/* Ghi đè các quy tắc từ style.css có thể làm hỏng bảng */
+.lobby-table thead { display: table-header-group; }
+.lobby-table tbody { display: table-row-group; }
+.lobby-table tr { display: table-row; }
+
+.lobby-table th, .lobby-table td {
+    display: table-cell; 
+    padding: 12px 15px;
+    border-bottom: 1px solid var(--border-light); /* Đổi sang màu viền sáng */
+    text-align: left;
+    vertical-align: middle; 
+    word-wrap: break-word; 
+}
+
+.lobby-table th {
+    background-color: var(--bg-light); /* Nền xám nhạt cho header */
+    color: var(--text-light); /* Màu text xám cho header */
+    font-weight: 600;
+    text-align: center; /* Căn giữa theo yêu cầu của bạn */
+}
+
+.lobby-table tr:last-child td {
+    border-bottom: none; /* Bỏ viền cho dòng cuối cùng */
+}
+
+.lobby-table tr:hover {
+    background-color: var(--bg-light); /* Hiệu ứng hover */
+}
+
+/* Phân chia cột */
+.lobby-table th:nth-child(1),
+.lobby-table td:nth-child(1) {
+    width: 50%; 
+    text-align: left; /* Căn trái cho cột 1 */
+}
+.lobby-table th:nth-child(2),
+.lobby-table td:nth-child(2) {
+    width: 20%;
+    text-align: center; /* Căn giữa cho cột 2 */
+}
+.lobby-table th:nth-child(3),
+.lobby-table td:nth-child(3) {
+    width: 30%;
+    text-align: center; /* Căn giữa cho cột 3 */
+}
+
+/* Nút "Tham gia" (đã có trong file CSS, chỉ để tham khảo) */
+.join-button {
+    padding: 8px 16px;
+    background: var(--gradient-success); /* Dùng màu xanh của theme */
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-weight: bold;
+    transition: all 0.3s ease;
+}
+.join-button:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-hover);
+}
+
+
+/* === KẾT THÚC PHẦN CSS BẢNG === */
+
+
 /* Responsive Design */
 @media (max-width: 768px) {
     .lobby-container {
+        /* Sửa lại quy tắc responsive cho lobby */
         grid-template-columns: 1fr;
         max-width: 500px;
+        margin: 40px auto; /* Căn giữa lại trên mobile */
+        padding: 0;
     }
     
     .join-form {
@@ -284,5 +373,50 @@ h1 {
     .container {
         margin: 20px;
         padding: 30px;
+    }
+
+    /* Thêm responsive cho bảng */
+    .lobby-table {
+        display: block; /* Chuyển bảng thành block trên mobile */
+    }
+    .lobby-table thead { display: none; } /* Ẩn header đi */
+    .lobby-table tbody, .lobby-table tr, .lobby-table td { 
+        display: block; 
+        width: 100%;
+        box-sizing: border-box;
+    }
+    .lobby-table tr {
+        margin-bottom: 10px;
+        border: 1px solid var(--border-light);
+        border-radius: 8px;
+    }
+    .lobby-table td {
+        text-align: right; /* Căn phải nội dung */
+        position: relative;
+        padding-left: 50%; /* Tạo không gian bên trái */
+        border-bottom: 1px solid var(--border-light);
+    }
+    .lobby-table td:last-child {
+        border-bottom: none;
+    }
+    /* Thêm label giả bằng ::before */
+    .lobby-table td::before {
+        content: attr(data-label);
+        position: absolute;
+        left: 10px;
+        padding-right: 10px;
+        font-weight: 600;
+        text-align: left;
+        color: var(--text-dark);
+    }
+    /* Gán data-label (cần sửa JSP) */
+    .lobby-table td:nth-child(1)::before { content: 'Người chơi:'; }
+    .lobby-table td:nth-child(2)::before { content: 'Elo:'; }
+    .lobby-table td:nth-child(3)::before { content: 'Hành động:'; text-align: center; }
+    
+    /* Căn giữa lại nút trên mobile */
+    .lobby-table td:nth-child(3) {
+         text-align: center;
+         padding-left: 15px;
     }
 }

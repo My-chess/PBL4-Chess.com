@@ -15,9 +15,7 @@ String currentUserId = (loggedInUser != null) ? loggedInUser.getUid() : "spectat
 </head>
 <body>
     <div class="game-container">
-        <!-- Phần nội dung chính -->
         <div class="main-content">
-            <!-- Thông tin người chơi Đen (phía trên) -->
             <div class="player-info-panel top">
                 <div class="captured-pieces" id="captured-for-black"></div>
                 <div class="player-details">
@@ -27,14 +25,11 @@ String currentUserId = (loggedInUser != null) ? loggedInUser.getUid() : "spectat
                 <div class="timer" id="timer-black">10:00</div>
             </div>
 
-            <!-- Bàn cờ -->
             <div class="board-frame">
                 <div id="board">
-                    <!-- JavaScript sẽ tạo các phần tử bàn cờ và quân cờ ở đây -->
-                </div>
+                    </div>
             </div>
 
-            <!-- Thông tin người chơi Đỏ (phía dưới) -->
             <div class="player-info-panel bottom">
                 <div class="captured-pieces" id="captured-for-red"></div>
                 <div class="player-details">
@@ -45,7 +40,6 @@ String currentUserId = (loggedInUser != null) ? loggedInUser.getUid() : "spectat
             </div>
         </div>
 
-        <!-- Sidebar -->
         <div class="sidebar">
             <h2>Ván cờ #${param.gameId}</h2>
             
@@ -58,8 +52,7 @@ String currentUserId = (loggedInUser != null) ? loggedInUser.getUid() : "spectat
             <div class="move-history">
                 <h3>Lịch sử nước đi</h3>
                 <ul id="move-list">
-                    <!-- Nước đi sẽ được thêm vào đây -->
-                </ul>
+                    </ul>
             </div>
             
             <div class="game-actions" id="game-actions-panel">
@@ -72,11 +65,17 @@ String currentUserId = (loggedInUser != null) ? loggedInUser.getUid() : "spectat
                 <button id="accept-draw-btn">Chấp nhận</button>
                 <button id="decline-draw-btn">Từ chối</button>
             </div>
-        </div>
-    </div>
 
-    <!-- Modal kết thúc game -->
-    <div id="gameOverModal" class="modal-overlay">
+            <div class="chat-container">
+                <h3>Trò chuyện</h3>
+                <div id="chat-log" class="chat-log">
+                    </div>
+                <form id="chat-form" class="chat-form">
+                    <input type="text" id="chat-message-input" placeholder="Gõ tin nhắn..." autocomplete="off">
+                    <button type="submit">Gửi</button>
+                </form>
+            </div>
+            </div> </div> <div id="gameOverModal" class="modal-overlay">
         <div class="modal-content">
             <h2>Kết quả ván cờ</h2>
             <p id="gameOverMessage"></p>
@@ -84,18 +83,15 @@ String currentUserId = (loggedInUser != null) ? loggedInUser.getUid() : "spectat
         </div>
     </div>
 
-    <!-- Truyền biến từ JSP sang JavaScript -->
     <script>
         const gameId = "${param.gameId}";
         const currentUserId = "<%= currentUserId %>";
         const contextPath = "${pageContext.request.contextPath}";
     </script>
 
-    <!-- Import Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
 
-    <!-- Import file JS -->
     <script src="${pageContext.request.contextPath}/js/chess-logic.js"></script>
     <script src="${pageContext.request.contextPath}/js/game.js"></script>
 </body>

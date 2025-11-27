@@ -89,7 +89,7 @@ public class FirebaseService {
     }
     
     
-    private static Map<String, String> boardToMap(Board board) {
+    public static Map<String, String> boardToMap(Board board) {
         Map<String, String> boardState = new HashMap<>();
         for (int y = 0; y < 10; y++) {
             for (int x = 0; x < 9; x++) {
@@ -157,9 +157,26 @@ public class FirebaseService {
 
         // 4. >>> THỰC HIỆN NƯỚC ĐI TRÊN ĐỐI TƯỢNG BOARD TRONG BỘ NHỚ <<<
         currentBoard.executeMove(startX, startY, endX, endY);
+        
+        boolean opponentHasMoves = currentBoard.hasLegalMoves(opponentColor);
+        boolean isGameOver = !opponentHasMoves;
+        String winReason = null;
+        
+        if (isGameOver) {
+            // Nếu hết nước đi:
+            // - Nếu đang bị chiếu -> Là Chiếu bí (CHECKMATE)
+            // - Nếu không bị chiếu -> Là Vây khốn (STALEMATE)
+            if (currentBoard.isKingInCheck(opponentColor)) {
+                winReason = "CHECKMATE";
+                System.out.println("!!! CHECKMATE DETECTED !!!");
+            } else {
+                winReason = "STALEMATE"; // Hết nước đi
+                System.out.println("!!! STALEMATE DETECTED !!!");
+            }
+        }
 
         // 5. >>> KIỂM TRA CHIẾU BÍ NGAY TRÊN BOARD TRONG BỘ NHỚ <<<
-        boolean isCheckmate = currentBoard.isCheckmate(opponentColor);
+        //boolean isCheckmate = currentBoard.isCheckmate(opponentColor);
 
         // 6. Chuẩn bị dữ liệu để cập nhật lên Firestore
         Map<String, String> newBoardStateMap = boardToMap(currentBoard);
@@ -180,15 +197,21 @@ public class FirebaseService {
         
         
         // --- Nếu là chiếu bí, cập nhật thêm trạng thái kết thúc trận đấu ---
-        if (isCheckmate) {
-            System.out.println("!!! CHECKMATE DETECTED !!!");
+//        if (isCheckmate) {
+//            System.out.println("!!! CHECKMATE DETECTED !!!");
+//            Map<String, String> winnerInfo = (Map<String, String>) matchState.get(currentTurnColor.equals("Red") ? "player1" : "player2");
+//            
+//            matchUpdates.put("status", "COMPLETED");
+//            matchUpdates.put("winReason", "CHECKMATE");
+//            matchUpdates.put("winnerId", winnerInfo.get("uid"));
+//            
+//            // Ghi chú: hàm endMatch() cũ không còn cần thiết cho trường hợp chiếu bí nữa
+//        }
+        if (isGameOver) {
             Map<String, String> winnerInfo = (Map<String, String>) matchState.get(currentTurnColor.equals("Red") ? "player1" : "player2");
-            
             matchUpdates.put("status", "COMPLETED");
-            matchUpdates.put("winReason", "CHECKMATE");
+            matchUpdates.put("winReason", winReason); // CHECKMATE hoặc STALEMATE
             matchUpdates.put("winnerId", winnerInfo.get("uid"));
-            
-            // Ghi chú: hàm endMatch() cũ không còn cần thiết cho trường hợp chiếu bí nữa
         }
 
         // 7. Ghi tất cả thay đổi lên Firestore trong một batch
@@ -208,8 +231,8 @@ public class FirebaseService {
         // 8. Commit và trả về kết quả
         batch.commit().get();
         
-        if (isCheckmate) {
-            return "CHECKMATE";
+        if (isGameOver) {
+            return winReason; // Trả về "CHECKMATE" hoặc "STALEMATE"
         } else {
             return "SUCCESS";
         }
@@ -411,5 +434,48 @@ public class FirebaseService {
             }
         }
         return validMoves;
+    }
+    
+    public static void deleteWaitingMatch(String matchId, String requesterId) 
+            throws ExecutionException, InterruptedException {
+                
+        DocumentReference matchRef = db.collection("matches").document(matchId);
+        DocumentSnapshot matchDoc = matchRef.get().get();
+
+        if (!matchDoc.exists()) {
+            System.out.println("Không thể xóa: Trận đấu " + matchId + " không tồn tại.");
+            return;
+        }
+
+        // Chỉ xóa nếu trận đấu vẫn đang ở trạng thái "WAITING"
+        if (!"WAITING".equals(matchDoc.getString("status"))) {
+            System.out.println("Không thể xóa: Trận đấu " + matchId + " không còn ở trạng thái chờ.");
+            return;
+        }
+
+        // Lấy thông tin người tạo phòng (có thể là player1 hoặc player2)
+        Map<String, Object> creatorInfo = null;
+        if (matchDoc.get("player1") != null) {
+            creatorInfo = (Map<String, Object>) matchDoc.get("player1");
+        } else if (matchDoc.get("player2") != null) {
+            creatorInfo = (Map<String, Object>) matchDoc.get("player2");
+        }
+
+        if (creatorInfo == null) {
+            System.out.println("Không thể xóa: Không tìm thấy thông tin người tạo phòng cho trận " + matchId);
+            return;
+        }
+
+        String creatorId = (String) creatorInfo.get("uid");
+
+        // KIỂM TRA BẢO MẬT QUAN TRỌNG NHẤT:
+        // Người yêu cầu xóa có phải là người đã tạo phòng không?
+        if (requesterId.equals(creatorId)) {
+            // Nếu đúng, tiến hành xóa document
+            matchRef.delete().get();
+            System.out.println("Thành công: Đã xóa phòng chờ " + matchId + " do người tạo phòng thoát.");
+        } else {
+            System.out.println("Không thể xóa: User " + requesterId + " không có quyền xóa phòng " + matchId + " của user " + creatorId);
+        }
     }
 }
