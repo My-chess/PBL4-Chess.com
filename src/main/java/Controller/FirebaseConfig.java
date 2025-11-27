@@ -8,38 +8,60 @@ import jakarta.servlet.ServletContextEvent;
 import jakarta.servlet.ServletContextListener;
 import jakarta.servlet.annotation.WebListener;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 
 @WebListener
 public class FirebaseConfig implements ServletContextListener {
 
     @Override
     public void contextInitialized(ServletContextEvent sce) {
-        System.out.println("FirebaseConfig: Initializing Firebase Admin SDK from serviceAccountKey.json for Tomcat...");
-        
+        System.out.println("FirebaseConfig: Starting initialization...");
+
         try {
             if (FirebaseApp.getApps().isEmpty()) {
-                // Lấy ServletContext để có thể truy cập tài nguyên của ứng dụng
-                ServletContext context = sce.getServletContext();
+                GoogleCredentials credentials = null;
 
-                // Tạo một InputStream để đọc trực tiếp file serviceAccountKey.json
-                InputStream serviceAccountStream = context.getResourceAsStream("/WEB-INF/serviceAccountKey.json");
+                // 1. ƯU TIÊN: Kiểm tra biến môi trường GOOGLE_CREDENTIALS_JSON trước
+                String envCredentials = System.getenv("GOOGLE_CREDENTIALS_JSON");
 
-                // Kiểm tra xem file có được tìm thấy không
-                if (serviceAccountStream == null) {
-                    System.err.println("CRITICAL ERROR: Could not find serviceAccountKey.json inside /WEB-INF/ directory.");
-                    throw new IOException("Cannot find serviceAccountKey.json. Make sure it's in the WEB-INF folder.");
+                if (envCredentials != null && !envCredentials.isEmpty()) {
+                    System.out.println(
+                            "FirebaseConfig: Found GOOGLE_CREDENTIALS_JSON environment variable. Loading from string...");
+                    // Chuyển chuỗi JSON thành InputStream
+                    InputStream envStream = new ByteArrayInputStream(envCredentials.getBytes(StandardCharsets.UTF_8));
+                    credentials = GoogleCredentials.fromStream(envStream);
                 }
-                System.out.println("Successfully found serviceAccountKey.json.");
+                // 2. DỰ PHÒNG: Nếu không có biến môi trường, tìm file trong WEB-INF
+                else {
+                    System.out.println(
+                            "FirebaseConfig: Environment variable not found. Looking for serviceAccountKey.json in WEB-INF...");
+                    ServletContext context = sce.getServletContext();
+                    InputStream serviceAccountStream = context.getResourceAsStream("/WEB-INF/serviceAccountKey.json");
 
-                // Khởi tạo Firebase từ InputStream
+                    if (serviceAccountStream != null) {
+                        System.out.println("FirebaseConfig: Found serviceAccountKey.json file.");
+                        credentials = GoogleCredentials.fromStream(serviceAccountStream);
+                    } else {
+                        System.err.println("CRITICAL ERROR: Could not find credentials in ENV or File.");
+                    }
+                }
+
+                // 3. Kiểm tra xem đã tải được credentials chưa
+                if (credentials == null) {
+                    throw new IOException(
+                            "Firebase configuration failed: No credentials found (Checked GOOGLE_CREDENTIALS_JSON and /WEB-INF/serviceAccountKey.json).");
+                }
+
+                // 4. Khởi tạo Firebase
                 FirebaseOptions options = FirebaseOptions.builder()
-                        .setCredentials(GoogleCredentials.fromStream(serviceAccountStream))
+                        .setCredentials(credentials)
                         .build();
 
                 FirebaseApp.initializeApp(options);
-                System.out.println("Firebase Admin SDK has been initialized successfully for Tomcat environment.");
+                System.out.println("Firebase Admin SDK has been initialized successfully.");
             }
         } catch (IOException e) {
             e.printStackTrace();
@@ -48,5 +70,6 @@ public class FirebaseConfig implements ServletContextListener {
     }
 
     @Override
-    public void contextDestroyed(ServletContextEvent sce) { }
+    public void contextDestroyed(ServletContextEvent sce) {
+    }
 }
