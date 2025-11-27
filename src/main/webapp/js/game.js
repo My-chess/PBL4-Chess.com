@@ -394,6 +394,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         var reasonText = '';
                         switch(data.reason) {
                             case 'CHECKMATE': reasonText = 'do chiếu bí'; break;
+							case 'STALEMATE': reasonText = 'do đối thủ Hết nước đi'; break;
                             case 'TIMEOUT': reasonText = 'do đối thủ hết giờ'; break;
                             case 'RESIGN': reasonText = 'do đối thủ đầu hàng'; break;
                             case 'DISCONNECT': reasonText = 'do đối thủ mất kết nối'; break;

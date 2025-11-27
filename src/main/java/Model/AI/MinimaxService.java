@@ -4,6 +4,7 @@ import Model.BEAN.Board;
 import Model.BEAN.MoveBEAN;
 import Model.BEAN.PieceBEAN;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 public class MinimaxService {
@@ -34,13 +35,46 @@ public class MinimaxService {
         }
         return bestMove;
     }
+ // Hàm gốc để gọi đệ quy
+    private MoveBEAN minimaxRoot(Board board, int depth, boolean isMaximizingPlayer, String aiColor) {
+        List<MoveBEAN> allMoves = getAllPossibleMoves(board, aiColor);
+        
+        // Sắp xếp nước đi để cắt tỉa Alpha-Beta tốt hơn (ví dụ: ưu tiên ăn quân trước)
+        // Ở đây để đơn giản ta xáo trộn để AI không bị lặp lại nước đi quá máy móc
+        Collections.shuffle(allMoves); 
+
+        MoveBEAN bestMove = null;
+        int bestValue = Integer.MIN_VALUE;
+        int alpha = Integer.MIN_VALUE;
+        int beta = Integer.MAX_VALUE;
+
+        for (MoveBEAN move : allMoves) {
+            Board newBoard = new Board(board);
+            newBoard.executeMove(move.getStartX(), move.getStartY(), move.getEndX(), move.getEndY());
+
+            int boardValue = minimax(newBoard, depth - 1, alpha, beta, false, aiColor);
+
+            if (boardValue > bestValue) {
+                bestValue = boardValue;
+                bestMove = move;
+            }
+            alpha = Math.max(alpha, bestValue);
+        }
+        return bestMove;
+    }
 
     private int minimax(Board board, int depth, int alpha, int beta, boolean isMaximizingPlayer, String aiColor) {
-        if (depth == 0 || board.isCheckmate("Red") || board.isCheckmate("Black")) {
+        String opponentColor = aiColor.equals("Red") ? "Black" : "Red";
+
+        // KIỂM TRA ĐIỀU KIỆN KẾT THÚC SỚM
+        if (board.isCheckmate(aiColor)) return -99999; // AI thua
+        if (board.isCheckmate(opponentColor)) return 99999; // AI thắng
+
+        if (depth == 0) {
             return boardEvaluator.evaluate(board, aiColor);
         }
 
-        String currentColor = isMaximizingPlayer ? aiColor : (aiColor.equals("Red") ? "Black" : "Red");
+        String currentColor = isMaximizingPlayer ? aiColor : opponentColor;
         List<MoveBEAN> allMoves = getAllPossibleMoves(board, currentColor);
 
         if (isMaximizingPlayer) {
@@ -51,12 +85,10 @@ public class MinimaxService {
                 int eval = minimax(newBoard, depth - 1, alpha, beta, false, aiColor);
                 maxEval = Math.max(maxEval, eval);
                 alpha = Math.max(alpha, eval);
-                if (beta <= alpha) {
-                    break; 
-                }
+                if (beta <= alpha) break;
             }
             return maxEval;
-        } else { 
+        } else {
             int minEval = Integer.MAX_VALUE;
             for (MoveBEAN move : allMoves) {
                 Board newBoard = new Board(board);
@@ -64,9 +96,7 @@ public class MinimaxService {
                 int eval = minimax(newBoard, depth - 1, alpha, beta, true, aiColor);
                 minEval = Math.min(minEval, eval);
                 beta = Math.min(beta, eval);
-                if (beta <= alpha) {
-                    break;  
-                }
+                if (beta <= alpha) break;
             }
             return minEval;
         }

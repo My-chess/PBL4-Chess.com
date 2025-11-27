@@ -198,7 +198,7 @@ public class GameEndpoint {
             	scheduleAfkCheck(gameId);
                 System.out.println("Success: Move was valid. Board updated on Firestore.");
                 break;
-                
+            case "STALEMATE":   
             case "CHECKMATE":
                 // Nước đi dẫn đến chiếu bí. Trạng thái game trên DB đã là "COMPLETED".
                 // Bây giờ ta cần cập nhật ELO và thông báo cho client.
