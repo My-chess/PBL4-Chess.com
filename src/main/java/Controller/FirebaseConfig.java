@@ -3,6 +3,7 @@ package Controller;
 import com.google.auth.oauth2.GoogleCredentials;
 import com.google.firebase.FirebaseApp;
 import com.google.firebase.FirebaseOptions;
+import jakarta.servlet.ServletContext; // <--- BẠN THIẾU DÒNG NÀY
 import jakarta.servlet.ServletContextEvent;
 import jakarta.servlet.ServletContextListener;
 import jakarta.servlet.annotation.WebListener;
@@ -45,7 +46,11 @@ public class FirebaseConfig implements ServletContextListener {
                 else {
                     System.out.println(
                             "FirebaseConfig: Environment variable not found. Looking for serviceAccountKey.json in WEB-INF...");
-                    ServletContext context = sce.getServletContext();
+                    
+                    // Lấy ServletContext từ event
+                    ServletContext context = sce.getServletContext(); 
+                    
+                    // Cần import jakarta.servlet.ServletContext để dòng trên hoạt động
                     InputStream serviceAccountStream = context.getResourceAsStream("/WEB-INF/serviceAccountKey.json");
 
                     if (serviceAccountStream != null) {
