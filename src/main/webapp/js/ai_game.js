@@ -223,8 +223,19 @@ document.addEventListener('DOMContentLoaded', function() {
                     }
                 }, 1000); 
             } else {
-                alert(`Lỗi: ${data.message}`);
-                location.reload(); 
+				
+				
+				statusMessageEl.textContent = `Lỗi: ${data.message}`;
+				console.warn("Nước đi bị từ chối:", data.message);
+ 
+				aiProcessing = false; 
+ 
+				renderBoardFromState(currentBoardState); 
+ 
+				clearHighlights();
+				selectedSquare = null;
+				
+				
             }
         })
         .catch(error => {
