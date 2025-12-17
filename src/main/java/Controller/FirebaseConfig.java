@@ -3,7 +3,7 @@ package Controller;
 import com.google.auth.oauth2.GoogleCredentials;
 import com.google.firebase.FirebaseApp;
 import com.google.firebase.FirebaseOptions;
-import jakarta.servlet.ServletContext;
+import jakarta.servlet.ServletContext; // <--- BẠN THIẾU DÒNG NÀY
 import jakarta.servlet.ServletContextEvent;
 import jakarta.servlet.ServletContextListener;
 import jakarta.servlet.annotation.WebListener;
@@ -13,9 +13,17 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 
+/**
+ * Lớp cấu hình Firebase, được thiết kế để chạy khi server khởi động.
+ * Phiên bản này được tối ưu cho môi trường production (như Render, Heroku)
+ * bằng cách đọc thông tin xác thực từ biến môi trường của hệ thống.
+ */
 @WebListener
 public class FirebaseConfig implements ServletContextListener {
 
+    /**
+     * Phương thức này được tự động gọi một lần duy nhất khi ứng dụng web bắt đầu chạy.
+     */
     @Override
     public void contextInitialized(ServletContextEvent sce) {
         System.out.println("FirebaseConfig: Starting initialization...");
@@ -38,7 +46,11 @@ public class FirebaseConfig implements ServletContextListener {
                 else {
                     System.out.println(
                             "FirebaseConfig: Environment variable not found. Looking for serviceAccountKey.json in WEB-INF...");
-                    ServletContext context = sce.getServletContext();
+                    
+                    // Lấy ServletContext từ event
+                    ServletContext context = sce.getServletContext(); 
+                    
+                    // Cần import jakarta.servlet.ServletContext để dòng trên hoạt động
                     InputStream serviceAccountStream = context.getResourceAsStream("/WEB-INF/serviceAccountKey.json");
 
                     if (serviceAccountStream != null) {
@@ -68,7 +80,7 @@ public class FirebaseConfig implements ServletContextListener {
             throw new RuntimeException("Firebase Admin SDK initialization failed.", e);
         }
     }
-
+    
     @Override
     public void contextDestroyed(ServletContextEvent sce) {
     }

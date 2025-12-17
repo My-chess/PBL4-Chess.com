@@ -223,14 +223,28 @@ document.addEventListener('DOMContentLoaded', function() {
                     }
                 }, 1000); 
             } else {
-                alert(`Lỗi: ${data.message}`);
-                location.reload(); 
+				// 1. Thông báo nhẹ nhàng (tùy chọn alert hoặc status)
+				statusMessageEl.textContent = `⚠️ ${data.message}`;
+				console.warn("Nước đi bị từ chối:", data.message);
+
+				// 2. Hoàn tác nước đi trên UI (Snap back)
+				// Vì ta đã di chuyển quân cờ bằng DOM ("Optimistic UI") trước khi gửi server,
+				// giờ server từ chối thì ta phải vẽ lại bàn cờ cũ.
+				                
+				// currentBoardState lúc này vẫn là trạng thái CŨ (do chưa được cập nhật mới)
+				renderBoardFromState(currentBoardState); 
+				                
+				// 3. Mở khóa để người chơi đi lại
+				aiProcessing = false;
+				turnColorEl.textContent = 'Người chơi';
+				turnColorEl.className = playerColor.toLowerCase();
             }
         })
         .catch(error => {
             console.error('Lỗi server:', error);
             statusMessageEl.textContent = 'Lỗi kết nối server.';
-            aiProcessing = false; // Mở khóa nếu lỗi mạng
+			renderBoardFromState(currentBoardState);
+			aiProcessing = false;
         });
     }
 
