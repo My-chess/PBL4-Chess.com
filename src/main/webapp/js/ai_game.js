@@ -204,11 +204,18 @@ document.addEventListener('DOMContentLoaded', function() {
                         }
 
                         // 3. Kiểm tra kết quả
-                        if (data.gameState === 'CHECKMATE') {
-                            endGame('CHECKMATE', false); 
-                        } else if (data.gameState === 'DRAW') {
-                            endGame('DRAW', false);
-                        }
+						if (data.gameState === 'CHECKMATE') {
+						    // Nếu không có nước đi của AI (aiMove là null), nghĩa là Người chơi vừa chiếu bí AI -> Player thắng
+						    // Nếu có nước đi của AI, nghĩa là AI vừa chiếu bí Người chơi -> AI thắng
+						    const playerWon = !data.aiMove; 
+						    endGame('CHECKMATE', playerWon); 
+						} else if (data.gameState === 'STALEMATE') {
+						    // Tương tự cho trường hợp hết nước đi (Vây khốn)
+						    const playerWon = !data.aiMove;
+						    endGame('STALEMATE', playerWon);
+						} else if (data.gameState === 'DRAW') {
+						    endGame('DRAW', false); // Hòa thì không ai thắng
+						}
                     } catch (e) {
                         console.error("Lỗi khi xử lý phản hồi từ AI:", e);
                     } finally {
@@ -223,8 +230,19 @@ document.addEventListener('DOMContentLoaded', function() {
                     }
                 }, 1000); 
             } else {
-                alert(`Lỗi: ${data.message}`);
-                location.reload(); 
+				
+				
+				statusMessageEl.textContent = `Lỗi: ${data.message}`;
+				console.warn("Nước đi bị từ chối:", data.message);
+ 
+				aiProcessing = false; 
+ 
+				renderBoardFromState(currentBoardState); 
+ 
+				clearHighlights();
+				selectedSquare = null;
+				
+				
             }
         })
         .catch(error => {
