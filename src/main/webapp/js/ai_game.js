@@ -204,11 +204,18 @@ document.addEventListener('DOMContentLoaded', function() {
                         }
 
                         // 3. Kiểm tra kết quả
-                        if (data.gameState === 'CHECKMATE') {
-                            endGame('CHECKMATE', false); 
-                        } else if (data.gameState === 'DRAW') {
-                            endGame('DRAW', false);
-                        }
+						if (data.gameState === 'CHECKMATE') {
+						    // Nếu không có nước đi của AI (aiMove là null), nghĩa là Người chơi vừa chiếu bí AI -> Player thắng
+						    // Nếu có nước đi của AI, nghĩa là AI vừa chiếu bí Người chơi -> AI thắng
+						    const playerWon = !data.aiMove; 
+						    endGame('CHECKMATE', playerWon); 
+						} else if (data.gameState === 'STALEMATE') {
+						    // Tương tự cho trường hợp hết nước đi (Vây khốn)
+						    const playerWon = !data.aiMove;
+						    endGame('STALEMATE', playerWon);
+						} else if (data.gameState === 'DRAW') {
+						    endGame('DRAW', false); // Hòa thì không ai thắng
+						}
                     } catch (e) {
                         console.error("Lỗi khi xử lý phản hồi từ AI:", e);
                     } finally {
@@ -223,28 +230,25 @@ document.addEventListener('DOMContentLoaded', function() {
                     }
                 }, 1000); 
             } else {
-				// 1. Thông báo nhẹ nhàng (tùy chọn alert hoặc status)
-				statusMessageEl.textContent = `⚠️ ${data.message}`;
+				
+				
+				statusMessageEl.textContent = `Lỗi: ${data.message}`;
 				console.warn("Nước đi bị từ chối:", data.message);
-
-				// 2. Hoàn tác nước đi trên UI (Snap back)
-				// Vì ta đã di chuyển quân cờ bằng DOM ("Optimistic UI") trước khi gửi server,
-				// giờ server từ chối thì ta phải vẽ lại bàn cờ cũ.
-				                
-				// currentBoardState lúc này vẫn là trạng thái CŨ (do chưa được cập nhật mới)
+ 
+				aiProcessing = false; 
+ 
 				renderBoardFromState(currentBoardState); 
-				                
-				// 3. Mở khóa để người chơi đi lại
-				aiProcessing = false;
-				turnColorEl.textContent = 'Người chơi';
-				turnColorEl.className = playerColor.toLowerCase();
+ 
+				clearHighlights();
+				selectedSquare = null;
+				
+				
             }
         })
         .catch(error => {
             console.error('Lỗi server:', error);
             statusMessageEl.textContent = 'Lỗi kết nối server.';
-			renderBoardFromState(currentBoardState);
-			aiProcessing = false;
+            aiProcessing = false; // Mở khóa nếu lỗi mạng
         });
     }
 

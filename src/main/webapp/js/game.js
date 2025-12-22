@@ -104,26 +104,37 @@ document.addEventListener('DOMContentLoaded', function() {
 	}
 
 	function showValidMoves(x, y) {
-        // Giả định rằng hàm getValidMoves tồn tại (từ một tệp khác)
-        // Nếu hàm này không tồn tại, đây sẽ là nơi logic thất bại.
-        if (typeof getValidMoves === 'undefined') {
-            console.error("Lỗi: Hàm 'getValidMoves' không được định nghĩa.");
-            return;
-        }
+	    // Kiểm tra xem file logic đã được load chưa
+	    if (typeof getValidMoves === 'undefined') {
+	        console.error("Lỗi: Hàm 'getValidMoves' không tìm thấy. Kiểm tra lại file chess-logic.js");
+	        return;
+	    }
 
+	    // 1. Tái tạo bàn cờ 2 chiều từ dữ liệu phẳng (previousBoardState)
 	    var boardArray = Array(10).fill(null).map(function() { return Array(9).fill(null); });
+	    
 	    for (var key in previousBoardState) {
 	        if (previousBoardState.hasOwnProperty(key)) {
 	            var pos = key.split(',');
 	            var row = parseInt(pos[0]);
 	            var col = parseInt(pos[1]);
 	            var pieceParts = previousBoardState[key].split('_');
-	            boardArray[row][col] = { type: pieceParts[0], color: pieceParts[1] };
+	            
+	            // --- THAY ĐỔI QUAN TRỌNG TẠI ĐÂY ---
+	            // Phải truyền đủ x, y vào object để logic tính toán chính xác
+	            boardArray[row][col] = { 
+	                type: pieceParts[0], 
+	                color: pieceParts[1],
+	                x: col, // Thêm x
+	                y: row  // Thêm y
+	            };
 	        }
 	    }
 
+	    // 2. Gọi hàm logic để lấy các nước đi hợp lệ (Đã bao gồm luật Chống tướng & Tự sát)
 	    var moves = getValidMoves(boardArray, parseInt(x), parseInt(y));
 	        
+	    // 3. Hiển thị các chấm xanh gợi ý
 	    moves.forEach(function(move) {
 	        var endX = move[0];
 	        var endY = move[1];

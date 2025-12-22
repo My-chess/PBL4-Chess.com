@@ -7,7 +7,7 @@ public class BoardEvaluator {
     // Giá trị cơ bản của quân cờ
     private static final int KING_VALUE = 10000;
     private static final int ROOK_VALUE = 1000;
-    private static final int KNIGHT_VALUE = 450;
+    private static final int KNIGHT_VALUE = 500;
     private static final int CANNON_VALUE = 500;
     private static final int BISHOP_VALUE = 250;
     private static final int ADVISOR_VALUE = 200;
