@@ -9,6 +9,100 @@
 function isWithinBounds(x, y) {
     return x >= 0 && x < 9 && y >= 0 && y < 10;
 }
+// Thay thế hàm cloneBoard cũ bằng hàm này
+function cloneBoard(board) {
+    var newBoard = [];
+    for (var i = 0; i < board.length; i++) {
+        var newRow = [];
+        for (var j = 0; j < board[i].length; j++) {
+            var piece = board[i][j];
+            if (piece) {
+                // Tạo object mới thủ công thay vì dùng { ...piece }
+                newRow.push({
+                    type: piece.type,
+                    color: piece.color,
+                    x: piece.x,
+                    y: piece.y
+                });
+            } else {
+                newRow.push(null);
+            }
+        }
+        newBoard.push(newRow);
+    }
+    return newBoard;
+}
+
+function isKingInCheck(board, kingColor) {
+    // A. Tìm vị trí Tướng phe mình
+    let kingX = -1, kingY = -1;
+    for (let y = 0; y < 10; y++) {
+        for (let x = 0; x < 9; x++) {
+            const p = board[y][x];
+            if (p && p.type === 'KingBEAN' && p.color === kingColor) {
+                kingX = x;
+                kingY = y;
+                break;
+            }
+        }
+    }
+    
+    // Nếu không thấy tướng (trường hợp hiếm gặp), coi như không bị chiếu
+    if (kingX === -1) return false;
+
+    // B. Duyệt tất cả quân đối phương xem có quân nào ăn được Tướng không
+    const enemyColor = (kingColor === 'Red') ? 'Black' : 'Red';
+    
+    for (let y = 0; y < 10; y++) {
+        for (let x = 0; x < 9; x++) {
+            const p = board[y][x];
+            // Nếu là quân địch
+            if (p && p.color === enemyColor) {
+                // Kiểm tra xem quân địch này có thể đi vào ô của Tướng mình không
+                // Lưu ý: isMoveValidForPiece đã bao gồm logic ăn quân
+                if (isMoveValidForPiece(board, p, x, y, kingX, kingY)) {
+                    return true; // Tướng đang bị chiếu!
+                }
+            }
+        }
+    }
+    return false; // An toàn
+}
+
+function areKingsFacing(board) {
+    let redKing = null;
+    let blackKing = null;
+
+    // Tìm vị trí 2 tướng
+    for (let y = 0; y < 10; y++) {
+        for (let x = 0; x < 9; x++) {
+            const p = board[y][x];
+            if (p && p.type === 'KingBEAN') {
+                if (p.color === 'Red') redKing = { x, y };
+                else blackKing = { x, y };
+            }
+        }
+    }
+
+    if (!redKing || !blackKing) return false;
+
+    // Nếu không cùng cột dọc -> Không sao
+    if (redKing.x !== blackKing.x) return false;
+
+    // Đếm số quân chắn ở giữa
+    const minY = Math.min(redKing.y, blackKing.y);
+    const maxY = Math.max(redKing.y, blackKing.y);
+    let obstacleCount = 0;
+
+    for (let y = minY + 1; y < maxY; y++) {
+        if (board[y][redKing.x] !== null) {
+            obstacleCount++;
+        }
+    }
+
+    // Nếu không có quân chắn -> Lộ mặt tướng (Vi phạm)
+    return obstacleCount === 0;
+}
 
 /**
  * Hàm chính để lấy các nước đi hợp lệ.
@@ -24,7 +118,30 @@ function getValidMoves(board, startX, startY) {
     const validMoves = [];
     for (let y = 0; y < 10; y++) {
         for (let x = 0; x < 9; x++) {
+            // 1. Kiểm tra luật di chuyển cơ bản (Xe đi thẳng, Mã đi chéo...)
             if (isMoveValidForPiece(board, piece, startX, startY, x, y)) {
+                
+                // 2. --- KIỂM TRA NÂNG CAO: ĐI THỬ ---
+                
+                // Tạo bàn cờ tạm
+                const tempBoard = cloneBoard(board);
+                
+                // Thực hiện nước đi trên bàn cờ tạm
+                tempBoard[y][x] = tempBoard[startY][startX]; // Di chuyển quân
+                tempBoard[startY][startX] = null;            // Xóa vị trí cũ
+                
+                // A. Kiểm tra luật Chống Tướng
+                if (areKingsFacing(tempBoard)) {
+                    continue; // Bỏ qua nước đi này
+                }
+
+                // B. (Tùy chọn) Kiểm tra xem đi xong Tướng mình có bị chiếu không (Tự sát)
+				if (isKingInCheck(tempBoard, piece.color)) {
+				    continue; // Bỏ qua nước đi này
+				}
+
+                
+                // Nếu vượt qua kiểm tra, thêm vào danh sách
                 validMoves.push([x, y]);
             }
         }
